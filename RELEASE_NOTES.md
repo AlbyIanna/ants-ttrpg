@@ -1,6 +1,40 @@
 # Release Notes
 
-## v1.0.0-prototype - First Playable Prototype (2025-09-11)
+## prototype-v0.2 - Visual Colony Display (2025-09-11)
+
+### 🎨 Visual Features
+- **ASCII Colony Map**: Real-time visual representation of ant positions and environment
+- **Ant Visualization**: Workers (W), Scouts (S), Soldiers (D) shown on map
+- **Environmental Display**: Nest (🏠), food sources (🫐🪵🌸), obstacles (🪨), weather (❄)
+- **Status Panels**: Enhanced colony metrics with visual warnings and alerts
+- **Animation System**: Smooth transitions showing ant movement between actions
+
+### 🏗️ Technical Enhancements
+- **VisualRenderer Class**: New ASCII art generation system with full-screen display
+- **Enhanced State Tracking**: Recent events, location discovery, spatial positioning
+- **Async Support**: Animation timing and smooth visual updates
+- **Mode Toggle**: `--visual` flag for choosing between text and visual modes
+
+### 🎮 Gameplay Improvements
+- **Spatial Awareness**: Ants positioned based on roles and current actions
+- **Location Discovery**: Exploration reveals new food sources and areas
+- **Environmental Storytelling**: Visual cues for predators, seasons, colony state
+- **Enhanced Immersion**: Real-time visual feedback for all player actions
+
+### 🚀 Usage
+```bash
+# Visual modes
+node sims/session-runner.js demo --visual
+node sims/session-runner.js interactive --visual
+
+# Traditional text modes  
+node sims/session-runner.js demo
+node sims/session-runner.js interactive
+```
+
+---
+
+## prototype-v0.1 - First Playable Prototype (2025-09-11)
 
 ### 🎮 Core Features
 - **Playable Game**: Complete simulation engine with turn-based mechanics

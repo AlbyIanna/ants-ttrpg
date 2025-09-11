@@ -26,6 +26,18 @@
 - Narrative folder edits allowed only when narrative artifacts are requested
 - Require human review of any changes to core rule logic
 
+# Versioning & Release Guidelines
+- Use semantic versioning: `prototype-v0.x` for prototypes, `v1.x.x` for stable releases
+- ALWAYS update RELEASE_NOTES.md before tagging a new version
+- Before committing major changes, review entire project for consistency:
+  - Check if architecture documentation needs updates
+  - Verify rule schemas still match implementation
+  - Update README.md usage instructions if commands changed
+  - Ensure narrative templates align with new features
+  - Review test examples for accuracy
+- Tag format: `prototype-v0.1`, `prototype-v0.2`, etc. for iterations
+- Each release must include: features added, technical changes, usage examples
+
 # Common commands / templates
 - `/gen-rule <informal description>` → produces JSON rule schema + tests
 - `/simulate-turn <state> <actions>` → produces code stubs or simulation result
