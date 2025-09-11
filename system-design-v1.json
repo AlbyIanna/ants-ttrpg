@@ -1,0 +1,184 @@
+{
+  "version": "v1.0",
+  "purpose": "High-level system design for Ant Colony TTRPG Prototype - defines modular architecture for swarm intelligence-based tabletop RPG simulation",
+  "modules": [
+    {
+      "name": "rule_engine",
+      "description": "Core rule validation and processing system for game mechanics",
+      "interface": {
+        "inputs": ["action", "game_state", "rule_context"],
+        "outputs": ["validation_result", "rule_effects", "error_messages"],
+        "dependencies": ["rule_schemas"]
+      },
+      "file_path": "/sims/rule-engine.js"
+    },
+    {
+      "name": "rule_schemas",
+      "description": "JSON schemas defining game rules, resources, population mechanics, and events",
+      "interface": {
+        "inputs": ["schema_type", "validation_data"],
+        "outputs": ["schema_definition", "validation_rules"],
+        "dependencies": []
+      },
+      "file_path": "/rules/*.json"
+    },
+    {
+      "name": "simulation_engine",
+      "description": "Game state transition system handling resource updates and encounter resolution",
+      "interface": {
+        "inputs": ["current_state", "player_actions", "environmental_factors"],
+        "outputs": ["new_state", "state_changes", "triggered_events"],
+        "dependencies": ["rule_engine", "event_manager"]
+      },
+      "file_path": "/sims/simulation-engine.js"
+    },
+    {
+      "name": "event_manager",
+      "description": "Handles random events, encounters, and narrative triggers",
+      "interface": {
+        "inputs": ["event_triggers", "colony_state", "narrative_context"],
+        "outputs": ["event_data", "narrative_text", "mechanical_effects"],
+        "dependencies": ["narrative_templates", "rule_schemas"]
+      },
+      "file_path": "/sims/event-manager.js"
+    },
+    {
+      "name": "narrative_templates",
+      "description": "Text templates and flavor content for game scenarios and events",
+      "interface": {
+        "inputs": ["template_id", "context_variables"],
+        "outputs": ["formatted_text", "available_options"],
+        "dependencies": []
+      },
+      "file_path": "/narrative/*.json"
+    },
+    {
+      "name": "agent_orchestrator",
+      "description": "Coordinates AI agents for GameMaster and specialized roles using prompt templates",
+      "interface": {
+        "inputs": ["agent_type", "context_data", "player_input"],
+        "outputs": ["agent_response", "suggested_actions", "narrative_continuation"],
+        "dependencies": ["prompt_templates", "session_state"]
+      },
+      "file_path": "/sims/agent-orchestrator.js"
+    },
+    {
+      "name": "prompt_templates",
+      "description": "Prompt engineering templates for AI GameMaster and subagents",
+      "interface": {
+        "inputs": ["template_name", "context_variables"],
+        "outputs": ["formatted_prompt", "agent_instructions"],
+        "dependencies": []
+      },
+      "file_path": "/prompts/*.json"
+    },
+    {
+      "name": "session_runner",
+      "description": "Main orchestration system for running game sessions and managing turn flow",
+      "interface": {
+        "inputs": ["session_config", "player_count", "scenario_id"],
+        "outputs": ["session_state", "turn_results", "session_log"],
+        "dependencies": ["simulation_engine", "agent_orchestrator", "memory_logger"]
+      },
+      "file_path": "/sims/session-runner.js"
+    },
+    {
+      "name": "memory_logger",
+      "description": "Persistent storage and retrieval system for game state and session history",
+      "interface": {
+        "inputs": ["log_entry", "query_parameters", "session_id"],
+        "outputs": ["stored_data", "query_results", "session_history"],
+        "dependencies": []
+      },
+      "file_path": "/sims/memory-logger.js"
+    }
+  ],
+  "folder_structure": {
+    "/rules/": {
+      "resource-schema.json": "Defines resource types, generation, and consumption rules",
+      "population-schema.json": "Ant colony population mechanics and growth patterns", 
+      "event-schema.json": "Random events, encounters, and environmental effects",
+      "action-schema.json": "Player action definitions and validation rules"
+    },
+    "/sims/": {
+      "simulation-engine.js": "Core game state transition logic",
+      "rule-engine.js": "Rule validation and processing",
+      "event-manager.js": "Event triggering and resolution",
+      "agent-orchestrator.js": "AI agent coordination system",
+      "session-runner.js": "Main session orchestration",
+      "memory-logger.js": "State persistence and logging"
+    },
+    "/narrative/": {
+      "scenario-templates.json": "One-shot scenario frameworks",
+      "event-flavors.json": "Descriptive text for events and encounters",
+      "character-roles.json": "Ant role descriptions and abilities"
+    },
+    "/prompts/": {
+      "gamemaster-prompts.json": "AI GameMaster instruction templates",
+      "specialist-prompts.json": "Domain-specific agent prompts",
+      "narrative-prompts.json": "Story generation and continuation prompts"
+    },
+    "/tests/": {
+      "rule-tests.js": "Unit tests for rule validation",
+      "simulation-tests.js": "Integration tests for game flow",
+      "example-playthroughs.json": "Complete session examples"
+    }
+  },
+  "example_flow": [
+    {
+      "step": 1,
+      "module": "session_runner",
+      "action": "initialize_session",
+      "data": {"scenario_id": "foraging_crisis", "players": 3, "colony_size": 50}
+    },
+    {
+      "step": 2,
+      "module": "agent_orchestrator",
+      "action": "generate_opening_narrative",
+      "data": {"template": "crisis_opening", "context": {"resource_scarcity": "high", "threat_level": "medium"}}
+    },
+    {
+      "step": 3,
+      "module": "simulation_engine",
+      "action": "process_player_actions",
+      "data": {"actions": [{"player": 1, "action": "send_scouts", "direction": "north"}], "current_state": {"food": 20, "population": 50}}
+    },
+    {
+      "step": 4,
+      "module": "rule_engine",
+      "action": "validate_actions",
+      "data": {"action": "send_scouts", "requirements": {"scouts_available": 5, "energy_cost": 3}}
+    },
+    {
+      "step": 5,
+      "module": "event_manager",
+      "action": "check_event_triggers",
+      "data": {"triggers": ["low_food", "scouting_action"], "probability_modifiers": {"season": "winter"}}
+    },
+    {
+      "step": 6,
+      "module": "simulation_engine",
+      "action": "update_game_state",
+      "data": {"state_changes": {"food": -3, "scouts_deployed": 5}, "triggered_events": ["predator_encounter"]}
+    },
+    {
+      "step": 7,
+      "module": "memory_logger",
+      "action": "log_turn_result",
+      "data": {"turn": 1, "state": {"food": 17, "population": 50, "active_scouts": 5}, "events": ["predator_encounter"]}
+    }
+  ],
+  "changelog": [
+    {
+      "version": "v1.0",
+      "date": "2025-09-11",
+      "changes": [
+        "Initial system design document created",
+        "Defined 9 core modules with clear interfaces",
+        "Mapped modules to existing folder structure from CLAUDE.md",
+        "Created example turn flow demonstrating module interactions",
+        "Established modular architecture supporting swarm intelligence mechanics"
+      ]
+    }
+  ]
+}

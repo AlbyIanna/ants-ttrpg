@@ -1,0 +1,57 @@
+{
+  "version": "v1.0",
+  "description": "Player actions available in the game",
+  "actions": {
+    "forage": {
+      "description": "Send workers to gather food",
+      "requirements": {
+        "workers": 3,
+        "energy_cost": 1
+      },
+      "effects": {
+        "food": "+1d6+2",
+        "risk": "predator_encounter"
+      },
+      "success_rate": 0.8
+    },
+    "explore": {
+      "description": "Send scouts to discover new areas",
+      "requirements": {
+        "scouts": 2,
+        "energy_cost": 2
+      },
+      "effects": {
+        "new_location": "random",
+        "risk": "getting_lost"
+      },
+      "success_rate": 0.7
+    },
+    "defend": {
+      "description": "Prepare colony defenses",
+      "requirements": {
+        "soldiers": 1,
+        "energy_cost": 1
+      },
+      "effects": {
+        "defense_bonus": "+2",
+        "morale": "+1"
+      },
+      "success_rate": 0.9
+    },
+    "rest": {
+      "description": "Conserve energy and recover",
+      "requirements": {},
+      "effects": {
+        "morale": "+1",
+        "food": "-1"
+      },
+      "success_rate": 1.0
+    }
+  },
+  "changelog": [
+    {
+      "version": "v1.0",
+      "changes": ["Initial action set: forage, explore, defend, rest"]
+    }
+  ]
+}

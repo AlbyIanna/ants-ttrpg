@@ -1,0 +1,97 @@
+{
+  "version": "v1.0",
+  "description": "Example playthrough of the Ant Colony TTRPG prototype",
+  "session_data": {
+    "scenario": "winter_survival",
+    "starting_state": {
+      "food": 15,
+      "population": {
+        "workers": 7,
+        "scouts": 2,
+        "soldiers": 1,
+        "total": 10
+      },
+      "morale": 5,
+      "turn": 1
+    },
+    "turns": [
+      {
+        "turn": 1,
+        "action": "forage",
+        "result": "success",
+        "narrative": "forage succeeded!",
+        "state_changes": {
+          "food": "+8",
+          "food_consumption": "-2"
+        },
+        "end_state": {
+          "food": 21,
+          "population": 10,
+          "morale": 5
+        }
+      },
+      {
+        "turn": 2, 
+        "action": "explore",
+        "result": "success",
+        "narrative": "explore succeeded!",
+        "state_changes": {
+          "food_consumption": "-2"
+        },
+        "end_state": {
+          "food": 19,
+          "population": 10,
+          "morale": 5
+        }
+      },
+      {
+        "turn": 3,
+        "action": "forage", 
+        "result": "success",
+        "events": ["predator_encounter"],
+        "narrative": [
+          "forage succeeded!",
+          "A bird swoops down on your foraging party!"
+        ],
+        "state_changes": {
+          "food": "+4",
+          "population": "+3",
+          "morale": "-2",
+          "food_consumption": "-2"
+        },
+        "end_state": {
+          "food": 21,
+          "population": 13,
+          "morale": 3
+        }
+      }
+    ],
+    "final_status": "Colony survived winter conditions with moderate success. Population grew but morale remained low due to predator encounters.",
+    "lessons_learned": [
+      "Foraging is risky but necessary for food production",
+      "Events can have major impacts on colony survival", 
+      "Balancing different actions is crucial for success",
+      "Morale management becomes important during crises"
+    ]
+  },
+  "gameplay_notes": {
+    "session_length": "7-10 turns typical for one-shot",
+    "key_decisions": [
+      "When to risk foraging vs. playing it safe",
+      "How to respond to random events",
+      "Balancing immediate needs vs. long-term growth"
+    ],
+    "difficulty_factors": [
+      "Food consumption pressure",
+      "Random event probability",
+      "Population requirements for actions",
+      "Morale spiral effects"
+    ]
+  },
+  "changelog": [
+    {
+      "version": "v1.0", 
+      "changes": ["Initial example playthrough documenting prototype gameplay"]
+    }
+  ]
+}

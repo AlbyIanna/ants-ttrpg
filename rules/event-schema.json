@@ -1,0 +1,49 @@
+{
+  "version": "v1.0",
+  "description": "Random events that can occur during play",
+  "events": {
+    "predator_encounter": {
+      "trigger": "forage_action",
+      "probability": 0.3,
+      "effects": {
+        "population": "-1d3",
+        "morale": "-2",
+        "food": "-1"
+      },
+      "narrative": "A bird swoops down on your foraging party!"
+    },
+    "food_discovery": {
+      "trigger": "explore_action",
+      "probability": 0.4,
+      "effects": {
+        "food": "+2d4",
+        "morale": "+1"
+      },
+      "narrative": "Your scouts discover a fallen fruit!"
+    },
+    "winter_arrives": {
+      "trigger": "turn_count",
+      "threshold": 5,
+      "effects": {
+        "food_consumption": "*2",
+        "forage_penalty": "-3"
+      },
+      "narrative": "The temperature drops as winter approaches..."
+    },
+    "ally_colony": {
+      "trigger": "high_morale",
+      "probability": 0.2,
+      "effects": {
+        "population": "+2",
+        "food": "+3"
+      },
+      "narrative": "A friendly ant colony offers to join yours!"
+    }
+  },
+  "changelog": [
+    {
+      "version": "v1.0",
+      "changes": ["Initial event set with triggers and narrative text"]
+    }
+  ]
+}

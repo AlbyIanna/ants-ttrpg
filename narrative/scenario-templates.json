@@ -1,0 +1,95 @@
+{
+  "version": "v1.0",
+  "description": "Basic narrative templates for ant colony scenarios",
+  "opening_scenarios": {
+    "winter_survival": {
+      "title": "The Coming Winter",
+      "setup": "Winter approaches and your young colony must prepare. Food becomes scarce, predators grow desperate, and every decision matters for survival.",
+      "goal": "Survive 10 turns and maintain at least 10 ants",
+      "starting_conditions": {
+        "food": 15,
+        "population": 10,
+        "morale": 5
+      },
+      "special_rules": ["double_food_consumption_after_turn_5"]
+    },
+    "predator_threat": {
+      "title": "The Bird's Shadow", 
+      "setup": "A large bird has been circling your territory. Your scouts report increased predator activity. The colony must decide between hiding and bold action.",
+      "goal": "Survive the threat and grow to 15 ants",
+      "starting_conditions": {
+        "food": 20,
+        "population": 8,
+        "morale": 4
+      },
+      "special_rules": ["increased_predator_encounters"]
+    }
+  },
+  "action_flavors": {
+    "forage": [
+      "Your workers venture out in formation, antennae twitching as they search for food.",
+      "The foraging party moves with purpose, following scent trails to promising areas.",
+      "Workers spread out across the territory, carefully avoiding known danger zones."
+    ],
+    "explore": [
+      "Scout ants dart ahead, their keen eyes scanning for new opportunities and threats.",
+      "The exploration team moves cautiously into unknown territory, leaving scent markers.",
+      "Brave scouts climb high and search far, expanding your colony's knowledge."
+    ],
+    "defend": [
+      "Soldier ants take position at key points around the nest, mandibles ready.",
+      "The colony forms defensive lines, with workers ready to retreat to safety.",
+      "Alert guards patrol the perimeter while others reinforce nest entrances."
+    ],
+    "rest": [
+      "The colony settles into a quiet rhythm, conserving energy and tending to the nest.",
+      "Ants groom each other and share food, strengthening social bonds.",
+      "A period of calm allows the colony to recover from recent hardships."
+    ]
+  },
+  "event_expansions": {
+    "predator_encounter": [
+      "A sparrow swoops down with deadly precision!",
+      "The shadow of a lizard falls across your foraging party!",
+      "A spider emerges from hiding, fangs glistening!"
+    ],
+    "food_discovery": [
+      "Your scouts have found a dropped crumb - a feast for the colony!",
+      "A fallen berry provides sweet sustenance for many ants!",
+      "Dead insects discovered - protein for the growing colony!"
+    ],
+    "winter_arrives": [
+      "Frost touches the ground. The easy days of foraging are ending.",
+      "Cold winds blow through the territory. Winter has begun.",
+      "The temperature drops sharply. Survival becomes the priority."
+    ]
+  },
+  "status_messages": {
+    "high_morale": [
+      "The colony buzzes with activity and purpose!",
+      "Your ants work with exceptional coordination!",
+      "Spirits are high - the colony feels unstoppable!"
+    ],
+    "low_morale": [
+      "Your ants move sluggishly, discouraged by recent setbacks.",
+      "There's tension in the nest - some ants question the leadership.",
+      "The colony struggles with doubt and fear."
+    ],
+    "low_food": [
+      "Stomachs growl as food stores dwindle dangerously low.",
+      "The sharp pangs of hunger affect every ant's performance.",
+      "Empty storage chambers echo with the colony's desperation."
+    ],
+    "large_population": [
+      "The nest teems with busy ants - a thriving community!",
+      "Your colony has grown into a formidable force!",
+      "The tunnels echo with the sound of many busy feet."
+    ]
+  },
+  "changelog": [
+    {
+      "version": "v1.0",
+      "changes": ["Initial narrative templates with scenarios and flavor text"]
+    }
+  ]
+}

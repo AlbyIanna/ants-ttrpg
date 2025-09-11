@@ -1,0 +1,38 @@
+{
+  "version": "v1.0",
+  "description": "Basic resource definitions for ant colony",
+  "resources": {
+    "food": {
+      "min": 0,
+      "max": 100,
+      "consumption_per_turn": 2,
+      "generation": {
+        "forage": 8,
+        "stored_food": 4
+      }
+    },
+    "population": {
+      "min": 1,
+      "max": 100,
+      "roles": {
+        "workers": { "ratio": 0.7, "abilities": ["forage", "build"] },
+        "scouts": { "ratio": 0.2, "abilities": ["explore", "warn"] },
+        "soldiers": { "ratio": 0.1, "abilities": ["defend", "fight"] }
+      }
+    },
+    "morale": {
+      "min": 0,
+      "max": 10,
+      "effects": {
+        "low": { "threshold": 3, "penalty": -2 },
+        "high": { "threshold": 8, "bonus": 1 }
+      }
+    }
+  },
+  "changelog": [
+    {
+      "version": "v1.0",
+      "changes": ["Initial resource schema with food, population, morale"]
+    }
+  ]
+}
