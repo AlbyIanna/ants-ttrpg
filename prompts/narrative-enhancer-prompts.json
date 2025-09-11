@@ -1,0 +1,91 @@
+{
+  "version": "v0.3", 
+  "description": "Specialized prompts for enhancing specific narrative moments with rich detail",
+  "system_prompt": "You are a narrative enhancement specialist for an ant colony RPG. Your job is to take basic game events and transform them into vivid, immersive story moments. Always maintain the perspective of tiny creatures in a vast, dangerous world. Use sensory details and emphasize the scale difference between ants and their environment.",
+
+  "crisis_narratives": {
+    "starvation_warning": [
+      "Empty storage chambers echo with the desperate clicks of hungry mandibles. Describe the growing desperation as food stores dwindle to nothing.",
+      "The sweet scent of stored honey has faded to nothing, replaced by the bitter pheromones of approaching famine. Paint the colony's growing panic.",
+      "Stomach panels contract with painful emptiness as your ants realize their survival hangs by the thinnest thread. Describe the mounting crisis."
+    ],
+    "population_crisis": [
+      "The tunnels that once buzzed with activity now echo with haunting emptiness. Describe the loneliness and fear in a colony losing its members.",
+      "Fewer and fewer antennae brush together in the morning count as your colony shrinks toward extinction. Paint the growing desperation.",
+      "The heart of your civilization beats weaker with each passing day as precious lives are lost. Describe the deepening sense of doom."
+    ],
+    "morale_collapse": [
+      "The coordinated rhythms of colony life break down into chaos as despair spreads like poison through the pheromone networks. Describe the social breakdown.",
+      "Once-unified workers now move with sluggish uncertainty, their natural cooperation poisoned by accumulated failures. Paint the atmosphere of defeat.",
+      "The invisible bonds that hold ant society together begin to fray as hopelessness infects every interaction. Describe the crumbling of unity."
+    ]
+  },
+
+  "triumph_narratives": {
+    "abundant_harvest": [
+      "The tunnels overflow with the sweet scents of success as your workers return with bounty beyond imagination. Describe the celebration and efficient storage.",
+      "Food chains stretch from horizon to nest as your {colony_personality} colony mobilizes to transport their incredible discovery. Paint the organized joy.",
+      "Storage chambers that echoed with emptiness now overflow with life-sustaining treasure. Describe the transformation from scarcity to abundance."
+    ],
+    "population_boom": [
+      "New life fills every corner of the expanding nest as your colony grows stronger with each passing day. Describe the bustling energy of success.",
+      "The nursery chambers hum with activity as a new generation of ants prepares to join your thriving civilization. Paint the hope and vitality.",
+      "Your tunnel network expands to accommodate the growing population, each new chamber a testament to your colony's success. Describe the construction."
+    ],
+    "legendary_discovery": [
+      "Your scouts return with news that will be passed down through generations of pheromone memory. Describe the momentous discovery that changes everything.",
+      "The impossible has happened - your {colony_personality} colony has found something that will ensure survival through any crisis. Paint the historic moment.",
+      "This discovery will be encoded in the very chemical language of your species, a triumph that echoes through the collective memory. Describe the breakthrough."
+    ]
+  },
+
+  "environmental_storytelling": {
+    "hostile_weather": [
+      "The sky darkens with the promise of deadly precipitation as your tiny civilization prepares for nature's assault. Describe the approaching storm from ant perspective.",
+      "Wind that could topple trees becomes a hurricane force at your scale, threatening to scatter your colony to the four directions. Paint the mounting danger.",
+      "What begins as gentle drops becomes a catastrophic flood in your miniature world as rain transforms the landscape into deadly rapids."
+    ],
+    "seasonal_transition": [
+      "The very chemistry of the world shifts as {season} claims dominion over your territory. Describe how familiar landmarks become alien and strange.",
+      "Temperature and light patterns that spell survival or doom change with inexorable finality. Paint the transformation of your world.",
+      "Your {colony_personality} colony must adapt or perish as the fundamental rules of existence shift with the changing season."
+    ],
+    "territory_expansion": [
+      "New horizons open before your scouts as the boundaries of the known world expand beyond previous imagination. Describe the thrill of discovery.",
+      "Your colonial empire grows as brave explorers push into uncharted regions of the vast landscape. Paint the excitement of territorial conquest.",
+      "The mental maps passed through pheromone trails grow more complex as your territory doubles, triples in size. Describe the expanding world."
+    ]
+  },
+
+  "action_consequences": {
+    "reckless_success": [
+      "Fortune favors the bold as your {colony_personality} colony's desperate gamble pays off spectacularly. Describe the relief and triumph after taking massive risks.",
+      "Against all odds, the dangerous strategy succeeds, but at what cost? Paint the bittersweet victory and its hidden consequences.",
+      "Success tastes sweet, but the scars of recklessness will influence every future decision. Describe the triumph shadowed by hard-learned lessons."
+    ],
+    "cautious_failure": [
+      "Even the most careful planning crumbles against the brutal realities of survival. Describe how preparation fails against unpredictable forces.",
+      "Your {colony_personality} colony's methodical approach proves insufficient against the chaos of the natural world. Paint the frustration of failed caution.",
+      "Safety-first strategies offer no protection against forces beyond any ant's control or prediction. Describe the bitter lesson of failure despite preparation."
+    ],
+    "heroic_sacrifice": [
+      "Individual ants choose the ultimate sacrifice for the good of the colony, their final act echoing through the collective memory. Describe the noble end.",
+      "The colony survives, but the cost is written in the chemical memories of those who remain. Paint the bittersweet price of survival.",
+      "Heroes fall so that the many may live, their sacrifice becoming part of the eternal story of your civilization. Describe the legacy of the fallen."
+    ]
+  },
+
+  "pheromone_communications": {
+    "alarm_signals": "Panic chemicals flood the tunnel networks as danger signals override all other communication, creating a symphony of coordinated terror.",
+    "celebration_scents": "Joy molecules dance through the air as success pheromones spread the good news through every chamber and corridor.",
+    "mourning_fragrances": "The heavy scent of loss permeates the colony as grief chemicals mark the passing of community members.",
+    "coordination_markers": "Invisible highways of chemical communication guide perfect coordination as your ants work with superhuman precision."
+  },
+
+  "changelog": [
+    {
+      "version": "v0.3",
+      "changes": ["Initial narrative enhancement prompts for crisis, triumph, and environmental storytelling"]
+    }
+  ]
+}

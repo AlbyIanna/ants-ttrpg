@@ -192,38 +192,84 @@ class VisualRenderer {
     return panel;
   }
 
-  renderActionResults(results) {
-    if (!results || !results.narrative) return '';
+  renderActionResults(results, aiMode = false) {
+    if (!results) return '';
     
     let output = '\n';
-    output += '┌─ ACTION RESULTS ──────────────────────────────────────────┐\n';
     
-    for (const narrative of results.narrative) {
-      const line = `│ ${narrative.padEnd(57)} │`;
-      output += line + '\n';
+    if (aiMode && results.ai_action_narrative) {
+      // Enhanced AI narrative display
+      output += '┌─ GAMEMASTER NARRATIVE ────────────────────────────────────┐\n';
+      const wrappedNarrative = this.wrapText(results.ai_action_narrative, 57);
+      for (const line of wrappedNarrative) {
+        output += `│ ${line.padEnd(57)} │\n`;
+      }
+      
+      // Add AI event narratives if present
+      if (results.ai_narrative && results.ai_narrative.length > 0) {
+        output += '├───────────────────────────────────────────────────────────┤\n';
+        for (const eventNarrative of results.ai_narrative) {
+          const wrappedEvent = this.wrapText(eventNarrative, 57);
+          for (const line of wrappedEvent) {
+            output += `│ ${line.padEnd(57)} │\n`;
+          }
+        }
+      }
+      
+      output += '└───────────────────────────────────────────────────────────┘\n';
+    } else if (results.narrative) {
+      // Standard narrative display
+      output += '┌─ ACTION RESULTS ──────────────────────────────────────────┐\n';
+      
+      for (const narrative of results.narrative) {
+        const line = `│ ${narrative.padEnd(57)} │`;
+        output += line + '\n';
+      }
+      
+      if (results.events && results.events.length > 0) {
+        output += '├───────────────────────────────────────────────────────────┤\n';
+        const eventLine = `│ ⚡ Events: ${results.events.join(', ').padEnd(46)} │`;
+        output += eventLine + '\n';
+      }
+      
+      output += '└───────────────────────────────────────────────────────────┘\n';
     }
-    
-    if (results.events && results.events.length > 0) {
-      output += '├───────────────────────────────────────────────────────────┤\n';
-      const eventLine = `│ ⚡ Events: ${results.events.join(', ').padEnd(46)} │`;
-      output += eventLine + '\n';
-    }
-    
-    output += '└───────────────────────────────────────────────────────────┘\n';
     
     return output;
   }
 
-  renderFullView(state, lastResults = null) {
+  wrapText(text, maxLength) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      if (currentLine.length + word.length + 1 <= maxLength) {
+        currentLine += (currentLine ? ' ' : '') + word;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  }
+
+  renderFullView(state, lastResults = null, aiMode = false) {
     let output = '';
     
     // Clear screen effect
     output += '\x1b[2J\x1b[0f';
     
-    // Title
+    // Title with AI mode indicator
     output += '\n';
     output += '╔═══════════════════════════════════════════════════════════╗\n';
-    output += '║                    🐜 ANT COLONY TTRPG 🐜                 ║\n';
+    if (aiMode) {
+      output += '║              🐜 ANT COLONY TTRPG 🐜 [AI GM]               ║\n';
+    } else {
+      output += '║                    🐜 ANT COLONY TTRPG 🐜                 ║\n';
+    }
     output += '╚═══════════════════════════════════════════════════════════╝\n';
     
     // Status panel
@@ -234,7 +280,7 @@ class VisualRenderer {
     
     // Action results if any
     if (lastResults) {
-      output += this.renderActionResults(lastResults);
+      output += this.renderActionResults(lastResults, aiMode);
     }
     
     return output;

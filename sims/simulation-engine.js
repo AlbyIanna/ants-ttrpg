@@ -1,6 +1,6 @@
 /**
- * Minimal simulation engine for Ant Colony TTRPG
- * Version: v1.0
+ * Simulation engine for Ant Colony TTRPG with narrative context tracking
+ * Version: v0.3 - Added AI GameMaster integration support
  */
 
 const fs = require('fs');
@@ -31,7 +31,14 @@ class SimulationEngine {
       turn: 1,
       locations: ['nest'],
       active_effects: [],
-      recent_events: []
+      recent_events: [],
+      narrative_context: {
+        colony_personality: null,
+        current_season: 'spring',
+        recent_actions: [],
+        survival_stress_level: 'low',
+        major_events_history: []
+      }
     };
   }
 
@@ -151,6 +158,9 @@ class SimulationEngine {
       }
     }
 
+    // Update narrative context for AI GameMaster
+    this.updateNarrativeContext(newState, action, results);
+
     newState.food = Math.max(0, newState.food - this.resources.resources.food.consumption_per_turn);
     newState.turn += 1;
 
@@ -166,11 +176,82 @@ class SimulationEngine {
     return state.population.total <= 0 || (state.food === 0 && state.morale <= 0);
   }
 
+  updateNarrativeContext(state, action, results) {
+    if (!state.narrative_context) {
+      state.narrative_context = {
+        colony_personality: null,
+        current_season: 'spring',
+        recent_actions: [],
+        survival_stress_level: 'low',
+        major_events_history: []
+      };
+    }
+
+    // Update recent actions (keep last 3)
+    state.narrative_context.recent_actions.unshift({
+      action: action,
+      success: results.success,
+      turn: state.turn
+    });
+    if (state.narrative_context.recent_actions.length > 3) {
+      state.narrative_context.recent_actions.pop();
+    }
+
+    // Determine colony personality based on behavior patterns
+    if (!state.narrative_context.colony_personality) {
+      if (state.morale >= 7) {
+        state.narrative_context.colony_personality = 'bold';
+      } else if (state.morale <= 3) {
+        state.narrative_context.colony_personality = 'desperate';
+      } else {
+        state.narrative_context.colony_personality = 'cautious';
+      }
+    }
+
+    // Update seasonal context
+    if (state.turn >= 5) {
+      state.narrative_context.current_season = 'winter';
+    }
+
+    // Calculate survival stress level
+    const foodStress = state.food <= 5 ? 2 : (state.food <= 10 ? 1 : 0);
+    const moraleStress = state.morale <= 3 ? 2 : (state.morale <= 6 ? 1 : 0);
+    const populationStress = state.population.total <= 5 ? 2 : (state.population.total <= 8 ? 1 : 0);
+    
+    const totalStress = foodStress + moraleStress + populationStress;
+    if (totalStress >= 4) {
+      state.narrative_context.survival_stress_level = 'critical';
+    } else if (totalStress >= 2) {
+      state.narrative_context.survival_stress_level = 'high';
+    } else {
+      state.narrative_context.survival_stress_level = 'low';
+    }
+
+    // Track major events
+    if (results.events && results.events.length > 0) {
+      for (const event of results.events) {
+        state.narrative_context.major_events_history.unshift({
+          event: event,
+          turn: state.turn,
+          context: state.narrative_context.survival_stress_level
+        });
+      }
+      // Keep only last 5 major events
+      if (state.narrative_context.major_events_history.length > 5) {
+        state.narrative_context.major_events_history = state.narrative_context.major_events_history.slice(0, 5);
+      }
+    }
+  }
+
   getGameStatus(state) {
     if (state.population.total <= 0) return "Colony destroyed - all ants are dead!";
     if (state.food === 0 && state.morale <= 0) return "Colony collapsed - starvation and despair!";
     if (state.turn >= 10 && state.population.total >= 15) return "Victory - your colony thrives!";
     return "ongoing";
+  }
+
+  getNarrativeContext(state) {
+    return state.narrative_context || {};
   }
 }
 

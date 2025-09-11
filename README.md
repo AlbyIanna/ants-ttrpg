@@ -14,12 +14,22 @@ Run with visual colony display:
 node sims/session-runner.js demo --visual
 ```
 
+Run with AI GameMaster (enhanced narrative):
+```bash
+node sims/session-runner.js demo --visual  # AI enabled by default
+```
+
+Run without AI (classic mode):
+```bash
+node sims/session-runner.js demo --visual --no-ai
+```
+
 Run interactive mode:
 ```bash  
 node sims/session-runner.js interactive
 ```
 
-Run interactive with visual display:
+Run interactive with full AI GameMaster:
 ```bash  
 node sims/session-runner.js interactive --visual
 ```
@@ -42,14 +52,25 @@ Players manage an ant colony through survival challenges. Make decisions about f
 ## File Structure
 
 - `/rules/` - JSON schemas for game mechanics
-- `/sims/` - Core simulation engine and session runner
+- `/sims/` - Core simulation engine, AI GameMaster, and session runner
+- `/prompts/` - AI narrative templates and GameMaster prompts
+- `/config/` - AI provider configuration and settings
 - `/narrative/` - Flavor text and scenario templates
 - `/tests/` - Example playthroughs and unit tests
 
 ## Architecture
 
 Built with modular design supporting:
-- Rule-based action validation
-- Event-driven narrative system
-- Emergent gameplay from simple mechanics
-- Easy expansion via JSON configuration
+- **AI GameMaster**: Dynamic narrative generation with contextual storytelling
+- **Visual Colony Display**: Real-time ASCII representation of ant world
+- **Rule-based Simulation**: Action validation and emergent gameplay
+- **Swarm Intelligence**: Simple rules creating complex behaviors
+- **Extensible Framework**: Easy expansion via JSON configuration
+
+## AI GameMaster Features
+
+- **Dynamic Storytelling**: Context-aware narrative generation
+- **Multiple Providers**: Support for OpenAI, Claude, local LLMs, or built-in mock AI
+- **Immersive Perspective**: Stories told from ant-scale viewpoint  
+- **Adaptive Narrative**: Responds to colony personality and stress levels
+- **Rich Visual Integration**: Enhanced visual display with AI-generated content

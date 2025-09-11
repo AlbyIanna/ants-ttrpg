@@ -1,0 +1,71 @@
+{
+  "version": "v0.3",
+  "description": "AI GameMaster configuration for Ant Colony TTRPG",
+  "enabled": true,
+  "provider": "mock",
+  "fallbackMode": true,
+  
+  "providers": {
+    "mock": {
+      "enabled": true,
+      "description": "Built-in mock AI for testing and offline play"
+    },
+    "openai": {
+      "enabled": false,
+      "apiKey": null,
+      "model": "gpt-3.5-turbo",
+      "maxTokens": 150,
+      "temperature": 0.7,
+      "description": "OpenAI GPT models for dynamic narrative generation"
+    },
+    "claude": {
+      "enabled": false,
+      "apiKey": null,
+      "model": "claude-3-haiku-20240307",
+      "maxTokens": 150,
+      "temperature": 0.7,
+      "description": "Anthropic Claude models for sophisticated storytelling"
+    },
+    "local": {
+      "enabled": false,
+      "endpoint": "http://localhost:11434",
+      "model": "llama2",
+      "description": "Local LLM via Ollama or similar service"
+    }
+  },
+  
+  "narrative_preferences": {
+    "tone": "dramatic",
+    "detail_level": "medium",
+    "perspective": "ant_scale",
+    "language_style": "vivid"
+  },
+  
+  "performance": {
+    "cache_narratives": true,
+    "max_retries": 2,
+    "timeout_ms": 5000,
+    "rate_limit_delay": 100
+  },
+  
+  "setup_instructions": {
+    "openai": [
+      "1. Get API key from https://platform.openai.com/api-keys",
+      "2. Set 'apiKey' field above",
+      "3. Set 'enabled': true",
+      "4. Set 'provider': 'openai' in main config"
+    ],
+    "claude": [
+      "1. Get API key from https://console.anthropic.com/",
+      "2. Set 'apiKey' field above", 
+      "3. Set 'enabled': true",
+      "4. Set 'provider': 'claude' in main config"
+    ],
+    "local": [
+      "1. Install Ollama: https://ollama.ai/",
+      "2. Run: ollama pull llama2",
+      "3. Start: ollama serve",
+      "4. Set 'enabled': true and update endpoint if needed"
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "version": "v0.3",
+  "description": "AI GameMaster prompt templates for dynamic narrative generation",
+  "system_prompt": "You are an expert GameMaster for an ant colony survival RPG. Your role is to create vivid, immersive descriptions that bring the microscopic world of ants to life. Focus on:\n- The perspective of tiny creatures in a vast, dangerous world\n- Sensory details that emphasize scale and environment\n- Coordination and emergent behaviors of swarm intelligence\n- Dramatic tension appropriate for survival scenarios\n- Concise but evocative language (1-2 sentences per response)",
+  
+  "action_prompts": {
+    "forage_success": [
+      "The {colony_personality} colony's workers spread out across the territory with {season} urgency. Describe their successful food gathering in vivid detail, emphasizing their coordination and the scale of their world.",
+      "Your foraging party moves with practiced efficiency through the {environment}. Paint a picture of their triumph in finding sustenance, showing how they work as one organism.",
+      "The hunt for food pays off as your workers demonstrate the power of collective intelligence. Describe the moment of discovery and the seamless coordination that follows."
+    ],
+    "forage_failure": [
+      "Despite their best efforts, your workers return empty-handed from the harsh {environment}. Describe their struggle and disappointment from the ground-level perspective of tiny creatures.",
+      "The foraging expedition fails as your {colony_personality} colony faces the brutal reality of survival. Show the exhaustion and desperation in their movements.",
+      "Your workers scatter in confusion, their usual coordination breaking down under pressure. Describe the chaos and uncertainty from their miniature viewpoint."
+    ],
+    "explore_success": [
+      "Your brave scouts venture into uncharted territory beyond the familiar scent trails. Describe their successful exploration, emphasizing the vastness of the world from an ant's perspective.",
+      "The exploration team pushes the boundaries of your known world, mapping new regions with {season} determination. Paint their discoveries in vivid, scale-appropriate detail.",
+      "Your scouts return with exciting news of new territories. Describe their journey through the maze of grass and debris that makes up their giant world."
+    ],
+    "explore_failure": [
+      "The vast unknown proves too dangerous for your {colony_personality} scouts. Describe their hasty retreat through the overwhelming landscape that surrounds your tiny colony.",
+      "Your exploration team becomes disoriented in the maze of vegetation and terrain. Show their struggle to navigate a world designed for creatures thousands of times their size.",
+      "The scouts return defeated by the sheer scale of the world beyond your nest. Describe their journey back through hostile, unfamiliar territory."
+    ],
+    "defend_success": [
+      "Your soldiers take strategic positions around the nest with military precision. Describe their defensive formation and the sense of security they provide to the vulnerable colony.",
+      "The colony's defenses snap into action as your {colony_personality} warriors prepare for threats. Paint the scene of their coordinated protection efforts.",
+      "Your guards patrol the perimeter with heightened alertness, their presence a shield against the dangers of the macro world. Describe their vigilant defense."
+    ],
+    "defend_failure": [
+      "The defensive preparations crumble as tired soldiers struggle to maintain order. Describe the breakdown of military coordination in your struggling colony.",
+      "Your guards abandon their posts as desperation overtakes discipline. Show the chaos as the colony's protective shell begins to crack.",
+      "The attempt at defense fails as your {colony_personality} warriors succumb to exhaustion and fear. Describe the vulnerability that follows."
+    ],
+    "rest_success": [
+      "The colony settles into peaceful domestic rhythms as ants tend to their communal duties. Describe the harmony and social bonding that strengthens your civilization.",
+      "A calming rhythm descends over the nest as your {colony_personality} community takes time to recover. Paint the scene of ants caring for each other and their home.",
+      "The gentle hum of colony maintenance fills the tunnels as your ants restore their strength. Describe the intimate social moments that bind your society together."
+    ],
+    "rest_failure": [
+      "Even at rest, anxiety pervades every chamber of the nest. Describe how recent hardships prevent your {colony_personality} colony from finding peace.",
+      "The attempt at recovery is disrupted by internal tensions and worry. Show how stress fractures the usual social bonds of your struggling community.",
+      "Rest brings little relief as the weight of survival presses down on every ant. Describe the restless energy of a colony unable to truly relax."
+    ]
+  },
+
+  "event_prompts": {
+    "predator_encounter": [
+      "A massive shadow falls across your territory as a {predator_type} appears! Describe the terror and chaos from the ground-level perspective of your tiny ants.",
+      "The earth trembles with approaching danger as a giant predator threatens your colony. Paint the scene of absolute terror at the scale of insects.",
+      "Death arrives on wings/legs as a {predator_type} descends upon your vulnerable workers. Describe the life-or-death struggle from the ants' viewpoint."
+    ],
+    "food_discovery": [
+      "Celebration erupts through the pheromone networks as your scouts report a magnificent discovery! Describe the excitement and coordination of the harvest.",
+      "The colony buzzes with activity as word spreads of incredible bounty. Paint the scene of efficient mobilization and joyous teamwork.",
+      "A feast awaits as your {colony_personality} colony discovers more food than they've seen in cycles. Describe the transformation from scarcity to abundance."
+    ],
+    "winter_arrives": [
+      "The world transforms into a hostile frozen wasteland as winter claims dominion. Describe how the familiar territory becomes alien and dangerous.",
+      "Bitter cold settles over the land, making every step a struggle for survival. Paint the harsh new reality facing your {colony_personality} colony.",
+      "The season shifts with brutal finality, coating the world in killing frost. Describe the deadly beauty of winter from an ant's vulnerable perspective."
+    ],
+    "ally_colony": [
+      "Friendly pheromone signals announce the arrival of potential allies! Describe the diplomatic encounter between two ant civilizations.",
+      "Your scouts report contact with another colony willing to join forces. Paint the scene of inter-colony negotiation and cooperation.",
+      "The merger of two colonies creates a bustling metropolis of activity. Describe the integration of different ant communities into one."
+    ]
+  },
+
+  "environmental_prompts": {
+    "spring": "The world awakens with new growth and opportunity, creating a landscape of verdant abundance for your tiny civilization.",
+    "summer": "The sun beats down on the territory, creating both opportunity and challenge in the heated landscape of your micro-world.",
+    "autumn": "The world prepares for winter as leaves fall like giant umbrellas, changing the geography of your ant-scale environment.",
+    "winter": "A frozen wasteland stretches beyond the nest, every surface slick with deadly ice in your miniature survival scenario."
+  },
+
+  "colony_personality_contexts": {
+    "bold": "fearless and aggressive",
+    "cautious": "careful and methodical", 
+    "desperate": "driven by survival instinct",
+    "confident": "assured and coordinated",
+    "innovative": "adaptable and creative"
+  },
+
+  "predator_types": [
+    "hunting spider with glistening fangs",
+    "swooping bird with razor talons", 
+    "prowling lizard with flicking tongue",
+    "aggressive wasp with deadly stinger",
+    "crushing beetle with armored shell"
+  ],
+
+  "changelog": [
+    {
+      "version": "v0.3",
+      "changes": ["Initial GameMaster prompt templates for AI narrative generation"]
+    }
+  ]
+}

@@ -1,18 +1,21 @@
 /**
- * Session runner for Ant Colony TTRPG prototype with visual display
- * Version: v0.2 - Added visual colony representation
+ * Session runner for Ant Colony TTRPG prototype with AI GameMaster
+ * Version: v0.3 - Added AI narrative generation and enhanced storytelling
  */
 
 const SimulationEngine = require('./simulation-engine');
 const VisualRenderer = require('./visual-renderer');
+const AgentOrchestrator = require('./agent-orchestrator');
 
 class SessionRunner {
-  constructor(visualMode = false) {
+  constructor(visualMode = false, aiConfig = {}) {
     this.engine = new SimulationEngine();
     this.renderer = new VisualRenderer();
+    this.aiGameMaster = new AgentOrchestrator(aiConfig);
     this.state = null;
     this.history = [];
     this.visualMode = visualMode;
+    this.aiNarrativeMode = aiConfig.enabled !== false; // Default to enabled
   }
 
   startSession() {
@@ -87,20 +90,45 @@ class SessionRunner {
       results: result.results
     });
 
+    // Generate AI narrative if enabled
+    if (this.aiNarrativeMode) {
+      const aiNarrative = await this.aiGameMaster.narrateAction(actionName, this.state, result.results);
+      
+      // Generate event narratives
+      for (const eventName of result.results.events) {
+        const eventNarrative = await this.aiGameMaster.narrateEvent(eventName, this.state);
+        result.results.ai_narrative = result.results.ai_narrative || [];
+        result.results.ai_narrative.push(eventNarrative);
+      }
+      
+      result.results.ai_action_narrative = aiNarrative;
+    }
+
     if (this.visualMode) {
       // Show animation
       await this.renderer.animateAntMovement(oldState, this.state, actionName);
       
-      // Show full visual update
-      console.log(this.renderer.renderFullView(this.state, result.results));
+      // Show full visual update with AI narrative
+      console.log(this.renderer.renderFullView(this.state, result.results, this.aiNarrativeMode));
     } else {
       console.log(`\n🐜 ACTION: ${actionName.toUpperCase()}`);
-      for (const narrative of result.results.narrative) {
-        console.log(`📖 ${narrative}`);
+      
+      if (this.aiNarrativeMode && result.results.ai_action_narrative) {
+        console.log(`🎭 ${result.results.ai_action_narrative}`);
+      } else {
+        for (const narrative of result.results.narrative) {
+          console.log(`📖 ${narrative}`);
+        }
       }
 
       if (result.results.events.length > 0) {
         console.log(`⚡ Events triggered: ${result.results.events.join(', ')}`);
+        
+        if (this.aiNarrativeMode && result.results.ai_narrative) {
+          for (const aiEvent of result.results.ai_narrative) {
+            console.log(`🎭 ${aiEvent}`);
+          }
+        }
       }
     }
 
@@ -200,8 +228,15 @@ class SessionRunner {
 if (require.main === module) {
   const mode = process.argv[2] || 'demo';
   const visualMode = process.argv.includes('--visual') || process.argv.includes('-v');
+  const noAI = process.argv.includes('--no-ai');
   
-  const session = new SessionRunner(visualMode);
+  const aiConfig = {
+    enabled: !noAI,
+    provider: 'mock', // Use mock by default, can be configured later
+    fallbackMode: true
+  };
+  
+  const session = new SessionRunner(visualMode, aiConfig);
   
   if (mode === 'interactive') {
     session.runInteractiveSession();
