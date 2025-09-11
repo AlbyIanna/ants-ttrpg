@@ -1,29 +1,38 @@
 /**
- * Simple session runner for Ant Colony TTRPG prototype
- * Version: v1.0
+ * Session runner for Ant Colony TTRPG prototype with visual display
+ * Version: v0.2 - Added visual colony representation
  */
 
 const SimulationEngine = require('./simulation-engine');
+const VisualRenderer = require('./visual-renderer');
 
 class SessionRunner {
-  constructor() {
+  constructor(visualMode = false) {
     this.engine = new SimulationEngine();
+    this.renderer = new VisualRenderer();
     this.state = null;
     this.history = [];
+    this.visualMode = visualMode;
   }
 
   startSession() {
     this.state = this.engine.createInitialState();
     this.history = [];
     
-    console.log("=== ANT COLONY TTRPG - SESSION START ===");
-    console.log("Your colony starts with:");
-    console.log(`- Food: ${this.state.food}`);
-    console.log(`- Population: ${this.state.population.total} (${this.state.population.workers}W, ${this.state.population.scouts}S, ${this.state.population.soldiers}D)`);
-    console.log(`- Morale: ${this.state.morale}/10`);
-    console.log("\nGoal: Survive 10 turns and grow your colony to 15+ ants!");
-    console.log("\nAvailable actions: forage, explore, defend, rest");
-    console.log("==========================================\n");
+    if (this.visualMode) {
+      console.log(this.renderer.renderFullView(this.state));
+      console.log("\n🎯 Goal: Survive 10 turns and grow your colony to 15+ ants!");
+      console.log("🎮 Available actions: forage, explore, defend, rest\n");
+    } else {
+      console.log("=== ANT COLONY TTRPG - SESSION START ===");
+      console.log("Your colony starts with:");
+      console.log(`- Food: ${this.state.food}`);
+      console.log(`- Population: ${this.state.population.total} (${this.state.population.workers}W, ${this.state.population.scouts}S, ${this.state.population.soldiers}D)`);
+      console.log(`- Morale: ${this.state.morale}/10`);
+      console.log("\nGoal: Survive 10 turns and grow your colony to 15+ ants!");
+      console.log("\nAvailable actions: forage, explore, defend, rest");
+      console.log("==========================================\n");
+    }
     
     return this.state;
   }
@@ -59,7 +68,7 @@ class SessionRunner {
     return actions;
   }
 
-  processPlayerAction(actionName) {
+  async processPlayerAction(actionName) {
     if (!actionName || typeof actionName !== 'string') {
       return { error: "Invalid action" };
     }
@@ -70,6 +79,7 @@ class SessionRunner {
       return { error: result.error };
     }
 
+    const oldState = { ...this.state };
     this.state = result.state;
     this.history.push({
       turn: this.state.turn - 1,
@@ -77,13 +87,21 @@ class SessionRunner {
       results: result.results
     });
 
-    console.log(`\n🐜 ACTION: ${actionName.toUpperCase()}`);
-    for (const narrative of result.results.narrative) {
-      console.log(`📖 ${narrative}`);
-    }
+    if (this.visualMode) {
+      // Show animation
+      await this.renderer.animateAntMovement(oldState, this.state, actionName);
+      
+      // Show full visual update
+      console.log(this.renderer.renderFullView(this.state, result.results));
+    } else {
+      console.log(`\n🐜 ACTION: ${actionName.toUpperCase()}`);
+      for (const narrative of result.results.narrative) {
+        console.log(`📖 ${narrative}`);
+      }
 
-    if (result.results.events.length > 0) {
-      console.log(`⚡ Events triggered: ${result.results.events.join(', ')}`);
+      if (result.results.events.length > 0) {
+        console.log(`⚡ Events triggered: ${result.results.events.join(', ')}`);
+      }
     }
 
     const gameStatus = this.engine.getGameStatus(this.state);
@@ -104,27 +122,35 @@ class SessionRunner {
       output: process.stdout
     });
 
-    const gameLoop = () => {
-      this.displayState();
+    const gameLoop = async () => {
+      if (!this.visualMode) {
+        this.displayState();
+      }
       
       const actions = this.getAvailableActions();
-      console.log("Available actions:");
-      actions.forEach(action => {
-        console.log(`  ${action.name} - ${action.description} (${action.success_rate} success)`);
-      });
+      if (!this.visualMode) {
+        console.log("Available actions:");
+        actions.forEach(action => {
+          console.log(`  ${action.name} - ${action.description} (${action.success_rate} success)`);
+        });
+      } else {
+        console.log("\n🎮 Available actions: " + actions.map(a => a.name).join(', '));
+      }
       
-      rl.question('\nChoose your action: ', (answer) => {
-        const result = this.processPlayerAction(answer.trim());
+      rl.question('\nChoose your action: ', async (answer) => {
+        const result = await this.processPlayerAction(answer.trim());
         
         if (result.error) {
           console.log(`❌ Error: ${result.error}`);
           gameLoop();
         } else if (result.gameOver) {
-          console.log("\nFinal colony status:");
-          this.displayState();
+          if (!this.visualMode) {
+            console.log("\nFinal colony status:");
+            this.displayState();
+          }
           rl.close();
         } else {
-          setTimeout(gameLoop, 1000);
+          setTimeout(gameLoop, this.visualMode ? 500 : 1000);
         }
       });
     };
@@ -138,8 +164,10 @@ class SessionRunner {
     const demoActions = ['forage', 'explore', 'forage', 'defend', 'forage', 'rest', 'forage'];
     let actionIndex = 0;
     
-    const demoLoop = () => {
-      this.displayState();
+    const demoLoop = async () => {
+      if (!this.visualMode) {
+        this.displayState();
+      }
       
       if (actionIndex >= demoActions.length || this.engine.isGameOver(this.state)) {
         const status = this.engine.getGameStatus(this.state);
@@ -148,9 +176,13 @@ class SessionRunner {
       }
       
       const action = demoActions[actionIndex];
-      console.log(`\n🤖 Demo choosing: ${action}`);
+      if (!this.visualMode) {
+        console.log(`\n🤖 Demo choosing: ${action}`);
+      } else {
+        console.log(`\n🤖 Demo action: ${action.toUpperCase()}`);
+      }
       
-      const result = this.processPlayerAction(action);
+      const result = await this.processPlayerAction(action);
       actionIndex++;
       
       if (result.gameOver) {
@@ -158,7 +190,7 @@ class SessionRunner {
         return;
       }
       
-      setTimeout(demoLoop, 2000);
+      setTimeout(demoLoop, this.visualMode ? 3000 : 2000);
     };
     
     demoLoop();
@@ -166,8 +198,10 @@ class SessionRunner {
 }
 
 if (require.main === module) {
-  const session = new SessionRunner();
   const mode = process.argv[2] || 'demo';
+  const visualMode = process.argv.includes('--visual') || process.argv.includes('-v');
+  
+  const session = new SessionRunner(visualMode);
   
   if (mode === 'interactive') {
     session.runInteractiveSession();

@@ -9,9 +9,19 @@ Run the demo:
 node sims/session-runner.js demo
 ```
 
+Run with visual colony display:
+```bash
+node sims/session-runner.js demo --visual
+```
+
 Run interactive mode:
 ```bash  
 node sims/session-runner.js interactive
+```
+
+Run interactive with visual display:
+```bash  
+node sims/session-runner.js interactive --visual
 ```
 
 ## Game Overview

@@ -30,7 +30,8 @@ class SimulationEngine {
       morale: 5,
       turn: 1,
       locations: ['nest'],
-      active_effects: []
+      active_effects: [],
+      recent_events: []
     };
   }
 
@@ -132,10 +133,22 @@ class SimulationEngine {
     }
 
     const triggeredEvents = this.checkEventTriggers(action, newState);
+    newState.recent_events = [];
     for (const event of triggeredEvents) {
       newState = this.applyEffects(event.data.effects, newState);
       results.events.push(event.name);
       results.narrative.push(event.data.narrative);
+      newState.recent_events.push(event.name);
+    }
+
+    // Add discovered locations based on successful explore actions
+    if (action === 'explore' && results.success && Math.random() < 0.4) {
+      const possibleLocations = ['berry_bush', 'fallen_log', 'flower_patch', 'water_source'];
+      const newLocation = possibleLocations[Math.floor(Math.random() * possibleLocations.length)];
+      if (!newState.locations.includes(newLocation)) {
+        newState.locations.push(newLocation);
+        results.narrative.push(`Discovered: ${newLocation.replace('_', ' ')}!`);
+      }
     }
 
     newState.food = Math.max(0, newState.food - this.resources.resources.food.consumption_per_turn);
