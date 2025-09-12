@@ -1,0 +1,29 @@
+{
+  "name": "ants-ttrpg",
+  "version": "0.5.0",
+  "description": "Ant Colony TTRPG - Interactive swarm intelligence simulation",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "vite preview --port 8000"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "keywords": [
+    "ants",
+    "simulation",
+    "ttrpg",
+    "swarm-intelligence",
+    "canvas",
+    "pixel-art"
+  ],
+  "author": "Claude Code",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "file:///home/alberto/Workspace/ants-ttrpg"
+  }
+}

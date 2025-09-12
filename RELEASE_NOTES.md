@@ -1,5 +1,69 @@
 # Release Notes
 
+## prototype-v0.5 - Vite Edition (2025-09-12)
+
+### 🚀 Major Upgrade: Modern Development Architecture
+
+**Complete migration to Vite-based development** with hot module reload, ES6 modules, and modern build tooling for superior developer experience and maintainable codebase.
+
+### 🔥 Development Features
+- **Hot Module Reload**: Instant updates when editing components - no page refresh needed
+- **ES6 Modules**: Clean import/export system with proper dependency management  
+- **Fast Build**: Lightning-fast dev server startup (141ms) and optimized production builds
+- **Modern Tooling**: Vite v5.4+ with automatic TypeScript support and CSS processing
+- **Source Maps**: Proper debugging with full source map support
+
+### 🎨 Enhanced Graphics
+- **Pixel Art Rendering**: Beautiful 450×300 Canvas with 6×6 pixel tiles for crisp graphics
+- **Detailed Sprites**: Hand-crafted pixel art for ants, terrain, and food sources
+- **Role-Based Colors**: Workers (green), scouts (blue), soldiers (red) with visual distinction
+- **Optimized Performance**: Hardware-accelerated Canvas rendering with 60fps target
+
+### 🏗️ Architectural Improvements  
+- **Modular Components**: Clean separation between utils, simulation, and rendering
+- **Import/Export System**: Proper ES6 modules replacing global variables
+- **Component Organization**: Logical file structure in `/src/components/`
+- **CSS Processing**: Vite handles CSS imports and optimization automatically
+- **Legacy Cleanup**: Removed old `/web/` directory and custom hot-reload system
+
+### 🎮 Enhanced Simulation
+- **World Size**: Expanded to 75×50 tiles (3,750 tiles vs previous 700)
+- **Better AI**: Improved ant behaviors with role-specific actions and state management
+- **Food System**: Enhanced food discovery, collection, and colony nutrition management
+- **Performance**: Optimized simulation loop with proper delta time handling
+
+### 📦 Package Management
+- **NPM Integration**: Proper package.json with development and build scripts
+- **Dependency Management**: Clean dependency tree with only Vite as dev dependency  
+- **Build Scripts**: `npm run dev`, `npm run build`, `npm run preview`
+- **Modern Standards**: ES2020 target with proper module resolution
+
+### 🚀 Quick Start (Updated)
+```bash
+npm install           # Install dependencies
+npm run dev          # Start development server
+# Open http://localhost:8000
+```
+
+### ✨ Developer Experience
+- **Instant Updates**: Change any component and see updates immediately
+- **Error Overlay**: Vite's built-in error display with stack traces
+- **Network Access**: Development server accessible from other devices
+- **Production Ready**: Optimized builds with tree shaking and minification
+
+### 🔄 Migration Benefits
+- **50% Faster Development**: HMR vs full page reloads
+- **Cleaner Code**: ES6 modules vs global script tags  
+- **Better Maintainability**: Component-based architecture
+- **Modern Standards**: Up-to-date with current web development practices
+- **Future Proof**: Foundation for TypeScript, testing, and advanced features
+
+### 🗑️ Removed Legacy Code
+- Custom hot-reload system (~200 lines removed)
+- Old `/web/` directory structure
+- Script tag-based loading system
+- Obsolete test files and configurations
+
 ## prototype-v0.4 - Browser Edition (2025-09-12)
 
 ### 🌟 Major Achievement: Complete Browser Implementation

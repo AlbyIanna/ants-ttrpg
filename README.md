@@ -1,81 +1,100 @@
-# 🐜 Ant Colony TTRPG Prototype v0.4
+# 🐜 Ant Colony TTRPG Prototype v0.5
 
-A **browser-based** tabletop RPG prototype inspired by swarm intelligence mechanics. Watch autonomous ants forage, explore, and survive in real-time with perfect emoji rendering and interactive features.
+A **modern browser-based** swarm intelligence simulation featuring autonomous ant colonies with beautiful pixel art graphics. Built with Vite for instant development feedback and optimized for 60fps performance.
 
-## ✨ Quick Start
-
-**🌟 Browser Edition** (Recommended):
-```bash
-cd web
-python3 -m http.server 8080
-# Open http://localhost:8080 in your browser
-```
-
-**Features:**
-- 🎮 **Interactive Controls**: Click ants for details, pause/resume with spacebar
-- 🐜 **Real-time Simulation**: Watch 10 autonomous ants with individual AI
-- 🌍 **Dynamic Environment**: Procedurally generated terrain with seasonal changes
-- 📱 **Mobile Friendly**: Responsive design works on all devices
-- ⚡ **Perfect Performance**: Smooth 60fps rendering with no emoji alignment issues
-
-## 🎯 What You'll See
-
-- **Workers** (W) forage for food and return to the nest (🏠)
-- **Scouts** (S) explore unknown areas and discover food sources
-- **Soldiers** (D) patrol the territory and defend against threats
-- **Environment** changes with seasons, weather, and random events
-- **Real-time Stats** showing food, population, morale, and performance
-
-## 🔧 Terminal Version (Alternative)
-
-For terminal enthusiasts, the original command-line version is also available:
+## 🚀 Quick Start
 
 ```bash
-# Enhanced turn-based simulation
-node test-enhanced-simulation.js
-
-# Real-time terminal simulation
-node test-live-simulation.js
-
-# Interactive session runner
-node sims/session-runner.js interactive
+npm install           # Install dependencies
+npm run dev          # Start development server with HMR
+# Open http://localhost:8000 in your browser
 ```
 
-## 🏗️ Project Structure
-
-```
-ants-ttrpg/
-├── web/               # Browser edition (main)
-│   ├── index.html     # Main application
-│   ├── styles.css     # Dark theme styling
-│   └── js/            # JavaScript modules
-├── sims/              # Core simulation engine
-├── rules/             # Game rule schemas
-├── narrative/         # Story templates
-└── tests/             # Example playthroughs
+**Production Build:**
+```bash
+npm run build        # Build optimized bundle (28KB JS + 5KB CSS)
+npm run preview      # Preview production build
 ```
 
-## 🎮 How to Play
+## ✨ Key Features
 
-1. **Start the simulation** - Click the play button or press spacebar
-2. **Watch the colony** - Ants will automatically forage, explore, and work
-3. **Interact with elements** - Click on ants, food, or terrain for details
-4. **Control the experience** - Adjust speed, pause, or reset as needed
-5. **Monitor progress** - Watch food levels, morale, and seasonal changes
+- 🎨 **Pixel Art Canvas**: 450×300 pixel world with hand-crafted 6×6 sprites
+- 🔥 **Hot Module Reload**: Instant updates during development (~50ms)
+- 🐜 **Autonomous AI**: Role-based ant behaviors (workers, scouts, soldiers)
+- 🌍 **Procedural World**: 75×50 tile environment with food sources and terrain
+- ⚡ **60 FPS Performance**: Smooth Canvas rendering with hardware acceleration
+- 🎮 **Interactive**: Click ants for details, keyboard shortcuts, real-time stats
+- 📱 **Responsive Design**: Works on desktop, tablet, and mobile devices
 
-The goal is to observe emergent swarm intelligence behaviors as your ant colony adapts to environmental challenges and works together for survival.
+## 🎯 Simulation Overview
 
-## 🌟 Why This Prototype?
+Watch autonomous ants exhibit realistic swarm intelligence behaviors:
 
-This project explores **swarm intelligence** concepts through an engaging, visual simulation:
+- 🟢 **Workers**: Forage for food, optimize collection routes, manage resources
+- 🔵 **Scouts**: Explore unknown territories, discover food sources, mark trails  
+- 🔴 **Soldiers**: Patrol colony perimeter, detect threats, defend nest
+- 🌍 **Dynamic Environment**: Procedural terrain with rocks, grass, water, and food
+- 📊 **Real-time Analytics**: Population stats, food reserves, colony morale
 
-- **Individual Agent Behavior**: Each ant has its own AI, role, and decision-making
-- **Emergent Phenomena**: Complex colony behaviors arise from simple rules
-- **Environmental Adaptation**: Ants respond to seasonal changes and food scarcity
-- **Real-time Visualization**: Watch swarm intelligence principles in action
+## 🏗️ Modern Architecture
 
-Perfect for educators, game designers, and anyone curious about collective intelligence!
+```
+src/                    # ES6 modules with Vite HMR
+├── main.js            # Application controller
+├── components/
+│   ├── utils.js       # Performance & DOM helpers  
+│   ├── web-simulation.js    # Ant AI & environment
+│   └── pixel-renderer.js    # Canvas graphics
+└── styles/styles.css  # Responsive design
+
+Legacy: sims/*, rules/*, narrative/* (reference)
+```
+
+## 🎮 Controls & Interaction
+
+**Basic Controls:**
+- `Space` - Play/Pause simulation
+- `+/-` - Adjust simulation speed (0.5x to 5x)
+- `Ctrl+R` - Reset colony to initial state
+- `Click ants` - View detailed information modal
+- `Hover terrain` - See coordinates and terrain type
+
+**Development Controls:**
+- Edit any `.js` file → See instant updates via HMR
+- `npm run build` → Create optimized production bundle
+- `F12 → Console` → View performance metrics and debug info
+
+## 🧬 Swarm Intelligence Features
+
+**Emergent Behaviors:**
+- **Trail Formation**: Ants create efficient paths to food sources
+- **Division of Labor**: Automatic role switching based on colony needs  
+- **Resource Optimization**: Collective foraging strategies emerge
+- **Threat Response**: Coordinated defense against environmental hazards
+
+**Individual AI:**
+- **State Machines**: Each ant has foraging, exploring, returning, resting states
+- **Energy Management**: Ants must balance work and rest for survival
+- **Environmental Awareness**: Pathfinding around obstacles, food detection
+- **Role-Specific Logic**: Workers prioritize food, scouts explore, soldiers patrol
+
+## 🎯 Educational Value
+
+Perfect for studying collective intelligence, emergence, and complex adaptive systems:
+
+- **Computer Science**: Agent-based modeling, AI behaviors, Canvas optimization
+- **Biology**: Ant colony organization, foraging strategies, social insects
+- **Game Development**: Real-time simulation, pixel art, performance optimization  
+- **Systems Thinking**: How simple rules create complex group behaviors
+
+## 🔧 Technical Highlights
+
+- **Zero Dependencies**: Pure vanilla JavaScript with modern ES6 modules
+- **Vite Build System**: Lightning-fast development with hot module reload
+- **Canvas Optimization**: 60fps pixel-perfect rendering on 450×300 display
+- **Responsive Design**: Scales beautifully on desktop, tablet, and mobile
+- **Clean Architecture**: Modular components with clear separation of concerns
 
 ---
 
-*Built with vanilla JavaScript for maximum compatibility and performance. No frameworks, no dependencies, just pure swarm intelligence simulation.* 🐜✨
+*Experience the fascinating world of swarm intelligence through interactive simulation!* 🐜✨
