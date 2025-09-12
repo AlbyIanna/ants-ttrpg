@@ -1,6 +1,6 @@
-# 🐜 Ant Colony TTRPG Prototype v0.5
+# 🐜 Ant Colony TTRPG Prototype v0.6
 
-A **modern browser-based** swarm intelligence simulation featuring autonomous ant colonies with beautiful pixel art graphics. Built with Vite for instant development feedback and optimized for 60fps performance.
+A **fully configurable world management system** for swarm intelligence simulation featuring autonomous ant colonies, extreme time scaling, and Game of Life-style world creation. Built with Vite and comprehensive testing coverage.
 
 ## 🚀 Quick Start
 
@@ -10,21 +10,24 @@ npm run dev          # Start development server with HMR
 # Open http://localhost:8000 in your browser
 ```
 
-**Production Build:**
+**Testing & Production:**
 ```bash
-npm run build        # Build optimized bundle (28KB JS + 5KB CSS)
+npm test             # Run comprehensive test suite (29 tests)
+npm run build        # Build optimized bundle (69KB JS + 11KB CSS)
 npm run preview      # Preview production build
 ```
 
 ## ✨ Key Features
 
+- 🌍 **Configurable Worlds**: Create custom ant colonies with 15+ parameters (size, biome, population, time scaling)
+- ⏰ **Extreme Time Scaling**: From real-time to 1 month per second (1:2628000 ratio)
+- 💾 **Save/Load System**: Persistent world storage with professional management interface
+- 🔧 **Runtime Configuration**: Live parameter adjustment during simulation
+- 🧪 **Comprehensive Testing**: 29 test cases with full menu and functionality coverage
 - 🎨 **Pixel Art Canvas**: 450×300 pixel world with hand-crafted 6×6 sprites
 - 🔥 **Hot Module Reload**: Instant updates during development (~50ms)
 - 🐜 **Autonomous AI**: Role-based ant behaviors (workers, scouts, soldiers)
-- 🌍 **Procedural World**: 75×50 tile environment with food sources and terrain
 - ⚡ **60 FPS Performance**: Smooth Canvas rendering with hardware acceleration
-- 🎮 **Interactive**: Click ants for details, keyboard shortcuts, real-time stats
-- 📱 **Responsive Design**: Works on desktop, tablet, and mobile devices
 
 ## 🎯 Simulation Overview
 
@@ -59,7 +62,13 @@ Legacy: sims/*, rules/*, narrative/* (reference)
 - `Click ants` - View detailed information modal
 - `Hover terrain` - See coordinates and terrain type
 
+**Advanced Controls:**
+- `Ctrl+Shift+C` - Open runtime configuration panel
+- `+/-` - Adjust time scale (Real Time to Month Scale)
+- `Ctrl+R` - Reset colony to initial state
+
 **Development Controls:**
+- `npm test` - Run comprehensive test suite
 - Edit any `.js` file → See instant updates via HMR
 - `npm run build` → Create optimized production bundle
 - `F12 → Console` → View performance metrics and debug info
@@ -90,8 +99,11 @@ Perfect for studying collective intelligence, emergence, and complex adaptive sy
 ## 🔧 Technical Highlights
 
 - **Zero Dependencies**: Pure vanilla JavaScript with modern ES6 modules
+- **Comprehensive Testing**: 29 test cases with Vitest and jsdom environment
 - **Vite Build System**: Lightning-fast development with hot module reload
 - **Canvas Optimization**: 60fps pixel-perfect rendering on 450×300 display
+- **World Management**: Professional save/load system with localStorage persistence
+- **Time Scaling Engine**: Advanced calendar system supporting extreme time acceleration
 - **Responsive Design**: Scales beautifully on desktop, tablet, and mobile
 - **Clean Architecture**: Modular components with clear separation of concerns
 

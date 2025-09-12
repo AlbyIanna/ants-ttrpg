@@ -6,6 +6,9 @@
 import { Utils } from './components/utils.js';
 import { WebSimulation } from './components/web-simulation.js';
 import { PixelRenderer } from './components/pixel-renderer.js';
+import { MenuManager } from './components/menu-manager.js';
+import { TimeScaleManager } from './components/time-scale-manager.js';
+import { RuntimeConfigPanel } from './components/runtime-config-panel.js';
 import './styles/styles.css';
 
 class AntColonyApp {
@@ -13,6 +16,9 @@ class AntColonyApp {
     // Core components
     this.simulation = null;
     this.renderer = null;
+    this.menuManager = null;
+    this.timeScaleManager = null;
+    this.runtimeConfigPanel = null;
     
     // App state
     this.isInitialized = false;
@@ -69,30 +75,17 @@ class AntColonyApp {
    * Initialize the application
    */
   async init() {
-    Utils.addActivity('🔧 Initializing ant colony simulation...', 'info');
-    Utils.setLoading(true, 10);
+    Utils.addActivity('🔧 Initializing ant colony application...', 'info');
+    Utils.setLoading(true, 50);
     
     try {
-      // Initialize core systems
-      await this.initializeSystems();
-      Utils.setLoading(true, 30);
-      
-      // Set up UI controls
-      this.setupUIControls();
-      Utils.setLoading(true, 60);
-      
-      // Set up keyboard shortcuts
-      this.setupKeyboardControls();
-      Utils.setLoading(true, 80);
-      
-      // Initialize colony
-      await this.initializeColony();
+      // Create menu manager first - this will show the menu
+      this.menuManager = new MenuManager(this);
       Utils.setLoading(true, 100);
       
       // Complete initialization
-      this.isInitialized = true;
       Utils.setLoading(false);
-      Utils.addActivity('✅ Ant colony simulation ready!', 'success');
+      Utils.addActivity('✅ Ant colony application ready!', 'success');
       
       console.log('🐜 Ant Colony TTRPG Application initialized successfully');
       
@@ -107,13 +100,24 @@ class AntColonyApp {
    * Initialize core simulation systems
    */
   async initializeSystems() {
+    // Create time scale manager first
+    this.timeScaleManager = new TimeScaleManager();
+    
     // Create simulation engine
     this.simulation = new WebSimulation();
     this.setupSimulationCallbacks();
     
+    // Pass time manager to simulation
+    if (this.simulation.setTimeScaleManager) {
+      this.simulation.setTimeScaleManager(this.timeScaleManager);
+    }
+    
     // Create renderer
     this.renderer = new PixelRenderer();
     this.setupRendererCallbacks();
+    
+    // Create runtime configuration panel
+    this.runtimeConfigPanel = new RuntimeConfigPanel(this);
     
     // Wait for renderer to initialize
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -270,19 +274,21 @@ class AntColonyApp {
   /**
    * Initialize the ant colony
    */
-  async initializeColony(biome = 'forest_floor') {
+  async initializeColony(biome = 'forest_floor', config = {}) {
     if (!this.simulation) return;
     
     Utils.addActivity('🏗️ Generating environment and colony...', 'info');
     
-    const state = await this.simulation.initializeColony(biome);
+    const state = await this.simulation.initializeColony(biome, config);
     
     if (this.renderer && state) {
       this.renderer.render(state, this.simulation.getSimulationStats());
     }
     
     Utils.addActivity(`🌍 ${biome.replace('_', ' ').toUpperCase()} biome generated`, 'success');
-    Utils.addActivity(`🐜 Colony established with ${state.population.total} ants`, 'success');
+    Utils.addActivity(`🐜 Colony established with ${state.population?.total || config.startingPopulation || 12} ants`, 'success');
+    
+    return state;
   }
 
   /**
@@ -335,6 +341,11 @@ class AntColonyApp {
       this.playPauseBtn.classList.add('primary');
     }
     
+    // Reset time scale manager
+    if (this.timeScaleManager) {
+      this.timeScaleManager.reset();
+    }
+    
     // Reinitialize colony
     await this.initializeColony();
     
@@ -377,6 +388,16 @@ class AntColonyApp {
    * Handle simulation state updates
    */
   handleStateUpdate(state, stats) {
+    // Update time scale manager
+    if (this.timeScaleManager && this.isSimulationRunning) {
+      const timeInfo = this.timeScaleManager.update();
+      
+      // Pass time info to stats for display
+      if (stats) {
+        stats.timeInfo = timeInfo;
+      }
+    }
+    
     if (this.renderer) {
       this.renderer.render(state, stats);
     }

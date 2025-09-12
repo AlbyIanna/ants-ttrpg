@@ -1,5 +1,83 @@
 # Release Notes
 
+## prototype-v0.6 - Configurable Worlds Edition (2025-09-12)
+
+### 🎯 Major Feature: Complete World Management System
+
+**Revolutionary upgrade transforming the simulation into a configurable, Game of Life-style world management system** with save/load functionality, extreme time scaling, and comprehensive testing coverage.
+
+### 🌍 Configurable World System
+- **Professional Menu Interface**: Complete menu system replacing direct simulation launch
+- **World Creation Modal**: 15+ configurable parameters including world size, biome type, population settings, role distribution, environment conditions, and time scaling
+- **Save/Load Functionality**: Persistent world storage with localStorage, world management interface
+- **World Library**: Visual grid of saved worlds with metadata, creation dates, and quick loading
+- **Professional UI**: Modal-based interfaces replacing browser prompts for superior UX
+
+### ⏰ Extreme Time Scaling System
+- **Six Time Scales**: From Real Time (1:1) to Month Scale (1:2628000) - 1 real second = 1 game month
+- **Dynamic Calendar**: Full calendar system with seasons, years, months, days, and hours
+- **Live Time Adjustment**: Change time scale during simulation without stopping
+- **Visual Indicators**: Season display and formatted time progression (Spring Year 1, Day 15, 08:30)
+- **Performance Optimized**: Smooth transitions between time scales maintaining 60fps
+
+### 🔧 Runtime Configuration Panel  
+- **Live Parameter Tuning**: Adjust simulation parameters while running
+- **Tabbed Interface**: Environment, Population, Behavior, Display, and Advanced settings
+- **Export/Import**: Save and share configuration presets
+- **Floating Panel**: Dockable configuration window with keyboard shortcuts (Ctrl+Shift+C)
+- **Real-time Updates**: Changes apply instantly to running simulation
+
+### 🧪 Comprehensive Testing Infrastructure
+- **Vitest Integration**: Professional testing setup with DOM environment support
+- **29 Test Cases**: Complete coverage of menu functionality, world loading, error handling
+- **CSS Testing**: Visual state verification with getComputedStyle mocking
+- **Test Utilities**: Reusable mocks and helpers for consistent testing
+- **Continuous Integration**: All tests pass before any commit
+
+### 🐛 Critical Bug Fixes
+- **Menu Overlay Visibility**: Fixed menu not hiding properly during world transitions (CSS .menu-overlay.hidden rule)
+- **World Loading Properties**: Fixed resumeLastWorld() using incorrect property names (name vs worldName)
+- **Modal UI Replacement**: Replaced unreliable browser prompt() with professional modal interfaces
+- **Error Handling**: Comprehensive error handling for all menu transitions with graceful fallbacks
+- **Array Safety**: Defensive programming preventing crashes from corrupted localStorage data
+
+### 🎮 Enhanced User Experience
+- **Seamless Transitions**: Smooth menu → world selection → simulation workflow
+- **Visual Feedback**: Loading states, progress indicators, success/error notifications
+- **Keyboard Shortcuts**: Full keyboard navigation and accessibility support
+- **Responsive Design**: Perfect display across desktop, tablet, and mobile devices
+- **Activity Feed**: Real-time logging of all user actions and system events
+
+### 📊 New World Configuration Options
+- **World Sizes**: Small (50×30), Medium (75×50), Large (100×75), Huge (150×100)
+- **Biome Types**: Forest Floor, Desert Oasis, Grassland, Wetland, Mixed Terrain
+- **Population Control**: Starting population (5-50), maximum population (20-200), role ratios
+- **Environment Settings**: Food abundance (Scarce/Normal/Abundant), hazard levels, starting season
+- **Preset Configurations**: Quick Start, Survival Mode, Evolution Lab templates
+
+### 🏗️ Architecture Improvements
+- **Component Separation**: MenuManager, TimeScaleManager, RuntimeConfigPanel as dedicated modules
+- **Event-Driven Design**: Clean separation of concerns with proper event handling
+- **State Management**: Centralized world configuration and simulation state
+- **Error Boundaries**: Graceful error recovery preserving user data and session state
+- **Performance Monitoring**: Built-in performance tracking and optimization
+
+### 🚀 Development Experience
+- **Test-Driven Development**: All new features developed with comprehensive test coverage
+- **Hot Module Reload**: Instant feedback during development (maintained from v0.5)
+- **Build Optimization**: Production bundle optimized to 68.76 kB (gzipped: 18.36 kB)
+- **Development Tools**: Enhanced debugging with detailed error reporting and performance metrics
+
+### 📱 Maintained Compatibility
+- **All v0.5 Features**: Complete backward compatibility with existing simulation features
+- **Browser Support**: Modern browsers with ES6 module support
+- **Mobile Responsive**: Touch-friendly interface optimized for all screen sizes
+- **Progressive Enhancement**: Graceful degradation for older devices
+
+---
+
+**This release transforms the ant colony simulation from a tech demo into a full-featured, configurable world management system comparable to Conway's Game of Life but with complex ant AI and swarm intelligence behaviors.**
+
 ## prototype-v0.5 - Vite Edition (2025-09-12)
 
 ### 🚀 Major Upgrade: Modern Development Architecture

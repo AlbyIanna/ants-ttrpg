@@ -452,3 +452,449 @@ label {
         border: 1px solid #e0e6ed;
     }
 }
+
+/* Main Menu Overlay */
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-overlay.hidden {
+    display: none;
+}
+
+.menu-content {
+    text-align: center;
+    max-width: 600px;
+    width: 90%;
+    padding: 2rem;
+}
+
+.menu-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: #4fd1c7;
+    text-shadow: 0 0 20px rgba(79, 209, 199, 0.3);
+}
+
+.menu-header .version-info {
+    color: #94a3b8;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+}
+
+.menu-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.menu-btn {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: #334155;
+    color: #f8fafc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.menu-btn:hover {
+    background: #475569;
+    border-color: #4fd1c7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(79, 209, 199, 0.2);
+}
+
+.menu-btn.primary {
+    background: #4fd1c7;
+    color: #0f172a;
+}
+
+.menu-btn.primary:hover {
+    background: #22d3ee;
+    border-color: #0891b2;
+}
+
+.menu-btn:disabled {
+    background: #1e293b;
+    color: #64748b;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.saved-worlds-preview {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.saved-worlds-preview h3 {
+    color: #94a3b8;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.worlds-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.no-worlds {
+    color: #64748b;
+    font-style: italic;
+    padding: 1rem;
+}
+
+.world-preview-item {
+    background: #334155;
+    border-radius: 4px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.world-preview-item:hover {
+    background: #475569;
+    border-color: #4fd1c7;
+}
+
+.world-preview-item h4 {
+    margin: 0 0 0.25rem 0;
+    color: #f8fafc;
+}
+
+.world-preview-meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Simulation Interface */
+.simulation-interface {
+    width: 100%;
+    height: 100vh;
+    overflow: auto;
+}
+
+.simulation-interface.hidden {
+    display: none;
+}
+
+.back-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem 1rem;
+    background: #334155;
+    border: 1px solid #4fd1c7;
+    color: #4fd1c7;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background: #4fd1c7;
+    color: #0f172a;
+}
+
+/* World Configuration Modal */
+.world-config-modal {
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.world-config-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.config-section {
+    background: rgba(30, 41, 59, 0.3);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.config-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #4fd1c7;
+    font-size: 1.2rem;
+}
+
+.config-section h4 {
+    margin: 1rem 0 0.5rem 0;
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+.config-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.config-row label {
+    min-width: 140px;
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.config-row input,
+.config-row select {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    background: #334155;
+    color: #f8fafc;
+}
+
+.config-row input:focus,
+.config-row select:focus {
+    outline: none;
+    border-color: #4fd1c7;
+    box-shadow: 0 0 0 2px rgba(79, 209, 199, 0.2);
+}
+
+.config-row input[type="range"] {
+    flex: 2;
+}
+
+.config-row span {
+    min-width: 60px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.role-distribution {
+    margin-top: 1rem;
+}
+
+.role-slider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.role-slider label {
+    min-width: 100px;
+    color: #e2e8f0;
+}
+
+.role-slider input[type="range"] {
+    flex: 1;
+}
+
+.role-slider span {
+    min-width: 40px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.config-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.config-btn {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.config-btn.primary {
+    background: #4fd1c7;
+    color: #0f172a;
+    border-color: #4fd1c7;
+}
+
+.config-btn.primary:hover {
+    background: #22d3ee;
+    border-color: #0891b2;
+}
+
+.config-btn.secondary {
+    background: #334155;
+    color: #e2e8f0;
+    border-color: #475569;
+}
+
+.config-btn.secondary:hover {
+    background: #475569;
+    border-color: #4fd1c7;
+}
+
+/* Load World Modal Styles */
+.load-world-modal {
+    max-width: 600px;
+    max-height: 80vh;
+}
+
+.load-world-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 60vh;
+}
+
+.saved-worlds-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    border-radius: 8px;
+    background: rgba(245, 222, 179, 0.1);
+}
+
+.saved-world-item {
+    background: linear-gradient(135deg, #F5DEB3, #DDBF94);
+    border: 2px solid #8B4513;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.saved-world-item:hover {
+    background: linear-gradient(135deg, #DDBF94, #D2B48C);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+}
+
+.saved-world-item.selected {
+    border-color: #2D4A2B;
+    box-shadow: 0 0 0 3px rgba(45, 74, 43, 0.3);
+    background: linear-gradient(135deg, #E6D7C3, #D4C4A8);
+}
+
+.saved-world-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.saved-world-name {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #2D4A2B;
+}
+
+.saved-world-date {
+    font-size: 0.8em;
+    color: #8B4513;
+    font-style: italic;
+}
+
+.saved-world-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    font-size: 0.85em;
+    color: #654321;
+}
+
+.saved-world-detail {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.saved-world-detail .icon {
+    font-size: 1.1em;
+}
+
+.no-saved-worlds {
+    text-align: center;
+    color: #8B4513;
+    font-style: italic;
+    padding: 32px;
+    font-size: 1.1em;
+}
+
+.load-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(139, 69, 19, 0.3);
+}
+
+.config-btn.danger {
+    background: linear-gradient(135deg, #DC143C, #B22222);
+    color: white;
+    border: 1px solid #B22222;
+}
+
+.config-btn.danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #B22222, #8B0000);
+}
+
+.config-btn.danger:disabled {
+    background: #CCC;
+    color: #999;
+    cursor: not-allowed;
+    border: 1px solid #AAA;
+}
+
+/* Responsive Design for Menu */
+@media (max-width: 768px) {
+    .menu-header h1 {
+        font-size: 2rem;
+    }
+    
+    .menu-content {
+        padding: 1rem;
+    }
+    
+    .config-buttons {
+        flex-direction: column;
+    }
+    
+    .config-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .config-row label {
+        min-width: auto;
+    }
+    
+    .role-slider {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -7,10 +7,45 @@
 </head>
 <body>
     <div class="app-container">
-        <header class="header">
-            <h1>🐜 ANT COLONY TTRPG - LIVE SIMULATION 🐜</h1>
-            <div class="version-info">Version v0.5 - Vite Edition</div>
-        </header>
+        <!-- Main Menu Overlay -->
+        <div id="mainMenu" class="menu-overlay">
+            <div class="menu-content">
+                <header class="menu-header">
+                    <h1>🐜 ANT COLONY SIMULATOR 🐜</h1>
+                    <div class="version-info">Version v0.5 - Configurable Worlds Edition</div>
+                </header>
+                
+                <div class="menu-options">
+                    <button id="resumeWorldBtn" class="menu-btn primary" disabled>
+                        🔄 Resume Last World
+                    </button>
+                    <button id="createWorldBtn" class="menu-btn">
+                        ✨ Create New World
+                    </button>
+                    <button id="loadWorldBtn" class="menu-btn">
+                        📁 Load Saved World
+                    </button>
+                    <button id="settingsBtn" class="menu-btn">
+                        ⚙️ Global Settings
+                    </button>
+                </div>
+                
+                <div class="saved-worlds-preview" id="savedWorldsPreview">
+                    <h3>Recent Worlds</h3>
+                    <div class="worlds-list" id="worldsList">
+                        <div class="no-worlds">No saved worlds yet. Create your first ant colony!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Interface (initially hidden) -->
+        <div id="simulationInterface" class="simulation-interface hidden">
+            <header class="header">
+                <h1>🐜 ANT COLONY TTRPG - LIVE SIMULATION 🐜</h1>
+                <div class="version-info">Version v0.5 - Vite Edition</div>
+                <button id="backToMenuBtn" class="back-btn">🏠 Main Menu</button>
+            </header>
 
         <main class="main-content">
             <!-- Control Panel -->
@@ -132,6 +167,148 @@
             <p>🎮 Use SPACE to pause/resume • Click on ants for details • Hover over terrain for info</p>
             <p>Built with ❤️ for swarm intelligence exploration</p>
         </footer>
+        </div> <!-- End simulation-interface -->
+        
+        <!-- Load World Modal -->
+        <div id="loadWorldModal" class="modal hidden">
+            <div class="modal-content load-world-modal">
+                <span class="modal-close" id="loadWorldClose">&times;</span>
+                <h2>📁 Load Saved World</h2>
+                
+                <div class="load-world-content">
+                    <div class="saved-worlds-grid" id="savedWorldsGrid">
+                        <!-- Saved worlds will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="load-actions">
+                        <button type="button" id="cancelLoadBtn" class="config-btn secondary">Cancel</button>
+                        <button type="button" id="loadSelectedBtn" class="config-btn primary" disabled>🚀 Load Selected</button>
+                        <button type="button" id="deleteWorldBtn" class="config-btn danger" disabled>🗑️ Delete Selected</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- World Configuration Modal -->
+        <div id="worldConfigModal" class="modal hidden">
+            <div class="modal-content world-config-modal">
+                <span class="modal-close" id="worldConfigClose">&times;</span>
+                <h2>✨ Create New World</h2>
+                
+                <form id="worldConfigForm" class="world-config-form">
+                    <div class="config-section">
+                        <h3>🌍 World Settings</h3>
+                        <div class="config-row">
+                            <label for="worldName">World Name:</label>
+                            <input type="text" id="worldName" placeholder="My Ant Colony" maxlength="30">
+                        </div>
+                        <div class="config-row">
+                            <label for="worldSize">World Size:</label>
+                            <select id="worldSize">
+                                <option value="small">Small (50×30 - Fast)</option>
+                                <option value="medium" selected>Medium (75×50 - Balanced)</option>
+                                <option value="large">Large (100×75 - Detailed)</option>
+                                <option value="huge">Huge (150×100 - Epic)</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="biomeType">Biome:</label>
+                            <select id="biomeType">
+                                <option value="forest" selected>🌲 Forest Floor</option>
+                                <option value="desert">🏜️ Desert Oasis</option>
+                                <option value="grassland">🌾 Grassland</option>
+                                <option value="wetland">🌿 Wetland</option>
+                                <option value="mixed">🗺️ Mixed Terrain</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="config-section">
+                        <h3>🐜 Population Settings</h3>
+                        <div class="config-row">
+                            <label for="startingPopulation">Starting Population:</label>
+                            <input type="range" id="startingPopulation" min="5" max="50" value="12">
+                            <span id="populationValue">12 ants</span>
+                        </div>
+                        <div class="config-row">
+                            <label for="maxPopulation">Maximum Population:</label>
+                            <input type="range" id="maxPopulation" min="20" max="200" value="50">
+                            <span id="maxPopulationValue">50 ants</span>
+                        </div>
+                        <div class="role-distribution">
+                            <h4>Role Distribution:</h4>
+                            <div class="role-slider">
+                                <label for="workerRatio">🟢 Workers:</label>
+                                <input type="range" id="workerRatio" min="30" max="80" value="60">
+                                <span id="workerPercent">60%</span>
+                            </div>
+                            <div class="role-slider">
+                                <label for="scoutRatio">🔵 Scouts:</label>
+                                <input type="range" id="scoutRatio" min="10" max="40" value="25">
+                                <span id="scoutPercent">25%</span>
+                            </div>
+                            <div class="role-slider">
+                                <label for="soldierRatio">🔴 Soldiers:</label>
+                                <input type="range" id="soldierRatio" min="5" max="30" value="15">
+                                <span id="soldierPercent">15%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="config-section">
+                        <h3>🍯 Environment Settings</h3>
+                        <div class="config-row">
+                            <label for="foodAbundance">Food Abundance:</label>
+                            <select id="foodAbundance">
+                                <option value="scarce">🍂 Scarce (Survival Challenge)</option>
+                                <option value="normal" selected>🍯 Normal (Balanced)</option>
+                                <option value="abundant">🍇 Abundant (Growth Focus)</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="hazardLevel">Hazard Level:</label>
+                            <select id="hazardLevel">
+                                <option value="peaceful">🕊️ Peaceful (No Threats)</option>
+                                <option value="normal" selected>⚖️ Normal (Occasional)</option>
+                                <option value="dangerous">⚡ Dangerous (Frequent)</option>
+                            </select>
+                        </div>
+                        <div class="config-row">
+                            <label for="startingSeason">Starting Season:</label>
+                            <select id="startingSeason">
+                                <option value="spring" selected>🌸 Spring</option>
+                                <option value="summer">☀️ Summer</option>
+                                <option value="autumn">🍂 Autumn</option>
+                                <option value="winter">❄️ Winter</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="config-section">
+                        <h3>⏰ Time Settings</h3>
+                        <div class="config-row">
+                            <label for="startingTimeScale">Initial Time Scale:</label>
+                            <select id="startingTimeScale">
+                                <option value="1">Real Time (1:1)</option>
+                                <option value="60" selected>Minute Scale (1:60)</option>
+                                <option value="3600">Hour Scale (1:3600)</option>
+                                <option value="86400">Day Scale (1 day/sec)</option>
+                                <option value="604800">Week Scale (1 week/sec)</option>
+                                <option value="2628000">Month Scale (1 month/sec) ⚡</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="config-buttons">
+                        <button type="button" id="presetQuickStart" class="config-btn secondary">⚡ Quick Start</button>
+                        <button type="button" id="presetSurvival" class="config-btn secondary">💀 Survival Mode</button>
+                        <button type="button" id="presetEvolution" class="config-btn secondary">🧬 Evolution Lab</button>
+                        <button type="submit" class="config-btn primary">🚀 Create World</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
     </div>
 
     <!-- Loading overlay -->
