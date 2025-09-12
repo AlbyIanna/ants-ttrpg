@@ -1,76 +1,81 @@
-# Ant Colony TTRPG Prototype v1.0
+# 🐜 Ant Colony TTRPG Prototype v0.4
 
-A lightweight tabletop RPG prototype inspired by swarm intelligence mechanics.
+A **browser-based** tabletop RPG prototype inspired by swarm intelligence mechanics. Watch autonomous ants forage, explore, and survive in real-time with perfect emoji rendering and interactive features.
 
-## Quick Start
+## ✨ Quick Start
 
-Run the demo:
+**🌟 Browser Edition** (Recommended):
 ```bash
-node sims/session-runner.js demo
+cd web
+python3 -m http.server 8080
+# Open http://localhost:8080 in your browser
 ```
 
-Run with visual colony display:
-```bash
-node sims/session-runner.js demo --visual
-```
+**Features:**
+- 🎮 **Interactive Controls**: Click ants for details, pause/resume with spacebar
+- 🐜 **Real-time Simulation**: Watch 10 autonomous ants with individual AI
+- 🌍 **Dynamic Environment**: Procedurally generated terrain with seasonal changes
+- 📱 **Mobile Friendly**: Responsive design works on all devices
+- ⚡ **Perfect Performance**: Smooth 60fps rendering with no emoji alignment issues
 
-Run with AI GameMaster (enhanced narrative):
-```bash
-node sims/session-runner.js demo --visual  # AI enabled by default
-```
+## 🎯 What You'll See
 
-Run without AI (classic mode):
-```bash
-node sims/session-runner.js demo --visual --no-ai
-```
+- **Workers** (W) forage for food and return to the nest (🏠)
+- **Scouts** (S) explore unknown areas and discover food sources
+- **Soldiers** (D) patrol the territory and defend against threats
+- **Environment** changes with seasons, weather, and random events
+- **Real-time Stats** showing food, population, morale, and performance
 
-Run interactive mode:
-```bash  
+## 🔧 Terminal Version (Alternative)
+
+For terminal enthusiasts, the original command-line version is also available:
+
+```bash
+# Enhanced turn-based simulation
+node test-enhanced-simulation.js
+
+# Real-time terminal simulation
+node test-live-simulation.js
+
+# Interactive session runner
 node sims/session-runner.js interactive
 ```
 
-Run interactive with full AI GameMaster:
-```bash  
-node sims/session-runner.js interactive --visual
+## 🏗️ Project Structure
+
+```
+ants-ttrpg/
+├── web/               # Browser edition (main)
+│   ├── index.html     # Main application
+│   ├── styles.css     # Dark theme styling
+│   └── js/            # JavaScript modules
+├── sims/              # Core simulation engine
+├── rules/             # Game rule schemas
+├── narrative/         # Story templates
+└── tests/             # Example playthroughs
 ```
 
-## Game Overview
+## 🎮 How to Play
 
-Players manage an ant colony through survival challenges. Make decisions about foraging, exploration, defense, and rest while managing:
+1. **Start the simulation** - Click the play button or press spacebar
+2. **Watch the colony** - Ants will automatically forage, explore, and work
+3. **Interact with elements** - Click on ants, food, or terrain for details
+4. **Control the experience** - Adjust speed, pause, or reset as needed
+5. **Monitor progress** - Watch food levels, morale, and seasonal changes
 
-- **Food**: Colony sustenance (consumed each turn)
-- **Population**: Workers, scouts, soldiers with different abilities  
-- **Morale**: Affects performance and decision outcomes
-- **Random Events**: Environmental challenges and opportunities
+The goal is to observe emergent swarm intelligence behaviors as your ant colony adapts to environmental challenges and works together for survival.
 
-## Victory Conditions
+## 🌟 Why This Prototype?
 
-- Survive 10 turns
-- Maintain colony population above critical levels
-- Adapt to environmental changes (winter, predators, etc.)
+This project explores **swarm intelligence** concepts through an engaging, visual simulation:
 
-## File Structure
+- **Individual Agent Behavior**: Each ant has its own AI, role, and decision-making
+- **Emergent Phenomena**: Complex colony behaviors arise from simple rules
+- **Environmental Adaptation**: Ants respond to seasonal changes and food scarcity
+- **Real-time Visualization**: Watch swarm intelligence principles in action
 
-- `/rules/` - JSON schemas for game mechanics
-- `/sims/` - Core simulation engine, AI GameMaster, and session runner
-- `/prompts/` - AI narrative templates and GameMaster prompts
-- `/config/` - AI provider configuration and settings
-- `/narrative/` - Flavor text and scenario templates
-- `/tests/` - Example playthroughs and unit tests
+Perfect for educators, game designers, and anyone curious about collective intelligence!
 
-## Architecture
+---
 
-Built with modular design supporting:
-- **AI GameMaster**: Dynamic narrative generation with contextual storytelling
-- **Visual Colony Display**: Real-time ASCII representation of ant world
-- **Rule-based Simulation**: Action validation and emergent gameplay
-- **Swarm Intelligence**: Simple rules creating complex behaviors
-- **Extensible Framework**: Easy expansion via JSON configuration
-
-## AI GameMaster Features
-
-- **Dynamic Storytelling**: Context-aware narrative generation
-- **Multiple Providers**: Support for OpenAI, Claude, local LLMs, or built-in mock AI
-- **Immersive Perspective**: Stories told from ant-scale viewpoint  
-- **Adaptive Narrative**: Responds to colony personality and stress levels
-- **Rich Visual Integration**: Enhanced visual display with AI-generated content
+*Built with vanilla JavaScript for maximum compatibility and performance. No frameworks, no dependencies, just pure swarm intelligence simulation.* 🐜✨
