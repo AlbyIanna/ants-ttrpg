@@ -71,6 +71,16 @@ export function createMenuHTML() {
           <h2>✨ Create New World</h2>
           <form id="worldConfigForm" class="world-config-form">
             <input type="text" id="worldName" placeholder="My Ant Colony" maxlength="30">
+            <select id="worldSize">
+              <option value="small">Small (100×75)</option>
+              <option value="medium" selected>Medium (200×150)</option>
+              <option value="large">Large (300×200)</option>
+              <option value="huge">Huge (500×300)</option>
+            </select>
+            <select id="biomeType">
+              <option value="forest" selected>Forest</option>
+              <option value="desert">Desert</option>
+            </select>
             <button type="submit" class="config-btn primary">🚀 Create World</button>
           </form>
         </div>

@@ -55,14 +55,28 @@
                     <button id="resetBtn" class="control-btn">🔄 Reset</button>
                     <div class="speed-control">
                         <label for="speedSlider">Speed:</label>
-                        <input type="range" id="speedSlider" min="0.5" max="5" step="0.5" value="1">
+                        <input type="range" id="speedSlider" min="0.5" max="20" step="0.5" value="1">
                         <span id="speedValue">1x</span>
                     </div>
                 </div>
                 <div class="view-controls">
-                    <label><input type="checkbox" id="showTrails" checked> Show Trails</label>
-                    <label><input type="checkbox" id="showBehaviorStates" checked> Behavior States</label>
-                    <label><input type="checkbox" id="showEnvironmentDetails" checked> Environment</label>
+                    <label title="Toggle visibility of pheromone trails left by ants as they explore and collect food"><input type="checkbox" id="showTrails" checked> Show Trails</label>
+                    <label title="Show ant behavior indicators (foraging, exploring, returning states)"><input type="checkbox" id="showBehaviorStates" checked> Behavior States</label>
+                    <label title="Display environment details like terrain textures and food quality indicators"><input type="checkbox" id="showEnvironmentDetails" checked> Environment</label>
+                </div>
+                <div class="layer-controls">
+                    <h4>Rendering Layers</h4>
+                    <label title="Show/hide the terrain background (rocks, grass, nest)"><input type="checkbox" id="layerTerrain" checked> 🏞️ Terrain</label>
+                    <label title="Show/hide pheromone chemical trails (advanced rendering layer)"><input type="checkbox" id="layerPheromones" checked> 🧪 Pheromones</label>
+                    <label title="Show/hide the ants themselves"><input type="checkbox" id="layerAnts" checked> 🐜 Ants</label>
+                    <label title="Show/hide UI elements like selection indicators and info overlays"><input type="checkbox" id="layerUI" checked> 📱 UI Overlay</label>
+                </div>
+                <div class="lod-controls">
+                    <h4>Level of Detail</h4>
+                    <div class="lod-info">
+                        <span>Current: <span id="currentLOD">High</span></span>
+                        <span>Zoom: <span id="currentZoom">1.0x</span></span>
+                    </div>
                 </div>
             </section>
 
@@ -101,8 +115,11 @@
                     <h3>Performance</h3>
                     <div class="performance-stats">
                         <div class="perf-item">FPS: <span id="fpsCounter">0</span></div>
+                        <div class="perf-item">Render: <span id="renderTime">0ms</span></div>
+                        <div class="perf-item">Visible: <span id="visibleObjects">0/0</span></div>
+                        <div class="perf-item">Memory: <span id="memoryUsage">0MB</span></div>
                         <div class="perf-item">Updates/sec: <span id="updateRate">0</span></div>
-                        <div class="perf-item">Status: <span id="simStatus">Stopped</span></div>
+                        <div class="perf-item">Status: <span id="simStatus">Stopped</span> <span class="perf-status" id="perfStatus">🟢</span></div>
                     </div>
                 </div>
             </section>
@@ -133,6 +150,49 @@
             <!-- Colony Map -->
             <section class="colony-panel">
                 <h3>Colony View</h3>
+                
+                <!-- Camera Controls -->
+                <div class="camera-controls">
+                    <div class="camera-section">
+                        <div class="pan-controls">
+                            <button class="pan-btn" id="panUp" title="Pan Up">↑</button>
+                            <div class="pan-horizontal">
+                                <button class="pan-btn" id="panLeft" title="Pan Left">←</button>
+                                <button class="pan-btn" id="panRight" title="Pan Right">→</button>
+                            </div>
+                            <button class="pan-btn" id="panDown" title="Pan Down">↓</button>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-section">
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
+                            <span class="zoom-level" id="zoomLevel">1.0x</span>
+                            <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
+                            <button class="reset-btn" id="resetView" title="Reset Camera">⌂</button>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-section">
+                        <div class="pixel-density-controls">
+                            <label class="pixel-density-label">🔍 Detail:</label>
+                            <select id="pixelDensitySelect" class="pixel-density-select" title="Choose rendering detail level">
+                                <option value="1">Ultra Performance (1px)</option>
+                                <option value="2">High Performance (2px)</option>
+                                <option value="4">Balanced (4px)</option>
+                                <option value="10" selected>High Detail (10px)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-section">
+                        <div class="minimap-container">
+                            <canvas id="minimapCanvas" class="minimap" width="80" height="60"></canvas>
+                            <div class="minimap-label">World Map</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="canvas-container">
                     <canvas id="colonyCanvas" class="colony-canvas"></canvas>
                 </div>
@@ -205,10 +265,10 @@
                         <div class="config-row">
                             <label for="worldSize">World Size:</label>
                             <select id="worldSize">
-                                <option value="small">Small (50×30 - Fast)</option>
-                                <option value="medium" selected>Medium (75×50 - Balanced)</option>
-                                <option value="large">Large (100×75 - Detailed)</option>
-                                <option value="huge">Huge (150×100 - Epic)</option>
+                                <option value="small">Small (100×75 - Fast)</option>
+                                <option value="medium" selected>Medium (200×150 - Balanced)</option>
+                                <option value="large">Large (300×200 - Detailed)</option>
+                                <option value="huge">Huge (500×300 - Epic)</option>
                             </select>
                         </div>
                         <div class="config-row">

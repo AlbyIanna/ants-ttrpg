@@ -409,6 +409,7 @@ export class MenuManager {
     
     try {
       // Initialize the simulation with the new world config
+      console.log(1122, config)
       await this.initializeWorldWithConfig(config);
       
       // Save world configuration
@@ -438,15 +439,7 @@ export class MenuManager {
       'mixed': 'mixed_terrain'
     };
     
-    const sizeMap = {
-      'small': { width: 50, height: 30 },
-      'medium': { width: 75, height: 50 },
-      'large': { width: 100, height: 75 },
-      'huge': { width: 150, height: 100 }
-    };
-    
     const biome = biomeMap[config.biomeType] || 'forest_floor';
-    const dimensions = sizeMap[config.worldSize] || { width: 75, height: 50 };
     
     // Initialize the app's systems if not done already
     if (!this.app.isInitialized) {
@@ -471,7 +464,7 @@ export class MenuManager {
     
     // Initialize colony with our configuration
     const state = await this.app.simulation.initializeColony(biome, {
-      dimensions,
+      worldSize: config.worldSize,
       startingPopulation: config.startingPopulation,
       maxPopulation: config.maxPopulation,
       roleDistribution: {

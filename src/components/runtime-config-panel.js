@@ -792,10 +792,32 @@ export class RuntimeConfigPanel {
         this.app.updateRendererSettings();
         break;
         
+      case 'explorationRate':
+        if (this.app.simulation.setExplorationRate) {
+          this.app.simulation.setExplorationRate(value);
+        }
+        break;
+        
+      case 'socialCohesion':
+        if (this.app.simulation.setSocialCohesion) {
+          this.app.simulation.setSocialCohesion(value);
+        }
+        break;
+        
       case 'season':
         if (this.app.simulation.setSeason) {
           this.app.simulation.setSeason(value);
         }
+        break;
+        
+      case 'weatherIntensity':
+        if (this.app.simulation.setWeatherIntensity) {
+          this.app.simulation.setWeatherIntensity(value);
+        }
+        break;
+        
+      case 'hazardLevel':
+        // This could be implemented later for environmental hazards
         break;
     }
   }

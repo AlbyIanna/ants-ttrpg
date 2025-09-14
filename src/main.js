@@ -6,6 +6,7 @@
 import { Utils } from './components/utils.js';
 import { WebSimulation } from './components/web-simulation.js';
 import { PixelRenderer } from './components/pixel-renderer.js';
+import { LayeredRenderer } from './components/layered-renderer.js';
 import { MenuManager } from './components/menu-manager.js';
 import { TimeScaleManager } from './components/time-scale-manager.js';
 import { RuntimeConfigPanel } from './components/runtime-config-panel.js';
@@ -112,8 +113,8 @@ class AntColonyApp {
       this.simulation.setTimeScaleManager(this.timeScaleManager);
     }
     
-    // Create renderer
-    this.renderer = new PixelRenderer();
+    // Create renderer - use LayeredRenderer for advanced features
+    this.renderer = new LayeredRenderer();
     this.setupRendererCallbacks();
     
     // Create runtime configuration panel
@@ -121,6 +122,9 @@ class AntColonyApp {
     
     // Wait for renderer to initialize
     await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Load user preferences from previous session
+    this.loadUserPreferences();
   }
 
   /**
@@ -215,6 +219,10 @@ class AntColonyApp {
       });
     }
     
+    // Layer control checkboxes
+    this.setupLayerControls();
+    this.setupPixelDensityControls();
+    
     // Modal close handlers
     const modal = document.getElementById('antModal');
     if (modal) {
@@ -231,6 +239,97 @@ class AntColonyApp {
         }
       });
     }
+  }
+
+  /**
+   * Set up layer control event handlers
+   */
+  setupLayerControls() {
+    if (!this.renderer || !this.renderer.setLayerVisibility) {
+      return; // Not a LayeredRenderer
+    }
+    
+    // Layer visibility toggles
+    const layerTerrain = document.getElementById('layerTerrain');
+    const layerPheromones = document.getElementById('layerPheromones');
+    const layerAnts = document.getElementById('layerAnts');
+    const layerUI = document.getElementById('layerUI');
+    
+    if (layerTerrain) {
+      layerTerrain.addEventListener('change', (e) => {
+        this.renderer.setLayerVisibility('terrain', e.target.checked);
+      });
+    }
+    
+    if (layerPheromones) {
+      layerPheromones.addEventListener('change', (e) => {
+        this.renderer.setLayerVisibility('pheromones', e.target.checked);
+      });
+    }
+    
+    if (layerAnts) {
+      layerAnts.addEventListener('change', (e) => {
+        this.renderer.setLayerVisibility('ants', e.target.checked);
+      });
+    }
+    
+    if (layerUI) {
+      layerUI.addEventListener('change', (e) => {
+        this.renderer.setLayerVisibility('ui_overlay', e.target.checked);
+      });
+    }
+    
+    // Update LOD and zoom display periodically
+    this.setupLODUpdater();
+  }
+  
+  /**
+   * Set up pixel density controls
+   */
+  setupPixelDensityControls() {
+    const pixelDensitySelect = document.getElementById('pixelDensitySelect');
+    
+    if (pixelDensitySelect && this.renderer && this.renderer.setPixelDensity) {
+      pixelDensitySelect.addEventListener('change', (e) => {
+        const density = parseInt(e.target.value, 10);
+        this.renderer.setPixelDensity(density);
+        
+        // Show performance benefit info
+        const level = this.renderer.getPixelDensityLevel();
+        this.addActivityMessage(`🔧 Pixel density set to ${level} (${density}px per cell)`);
+        
+        // Force a full re-render
+        if (this.simulation && this.simulation.state) {
+          this.renderer.render(this.simulation.state);
+        }
+      });
+      
+      console.log('✅ Pixel density controls initialized');
+    }
+  }
+  
+  /**
+   * Set up LOD display updater
+   */
+  setupLODUpdater() {
+    const updateLODDisplay = () => {
+      if (this.renderer && this.renderer.lodSettings) {
+        const currentLOD = document.getElementById('currentLOD');
+        const currentZoom = document.getElementById('currentZoom');
+        
+        if (currentLOD) {
+          const level = this.renderer.lodSettings.currentLevel;
+          currentLOD.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+        }
+        
+        if (currentZoom) {
+          currentZoom.textContent = `${this.renderer.camera.zoom.toFixed(1)}x`;
+        }
+      }
+    };
+    
+    // Update every 500ms
+    setInterval(updateLODDisplay, 500);
   }
 
   /**
@@ -359,6 +458,9 @@ class AntColonyApp {
     if (this.simulation) {
       this.simulation.setSpeed(speed);
     }
+    
+    // Save speed preference
+    this.saveUserPreferences();
   }
 
   /**
@@ -367,7 +469,7 @@ class AntColonyApp {
   adjustSpeed(delta) {
     if (this.speedSlider && this.speedValue) {
       const currentSpeed = parseFloat(this.speedSlider.value);
-      const newSpeed = Utils.clamp(currentSpeed + delta, 0.5, 5.0);
+      const newSpeed = Utils.clamp(currentSpeed + delta, 0.5, 20.0); // Updated max to 20x
       
       this.speedSlider.value = newSpeed;
       this.speedValue.textContent = `${newSpeed}x`;
@@ -382,6 +484,62 @@ class AntColonyApp {
     if (this.renderer) {
       this.renderer.setDisplayOptions(this.settings);
     }
+    
+    // Save display preferences
+    this.saveUserPreferences();
+  }
+
+  /**
+   * Save user preferences to localStorage
+   */
+  saveUserPreferences() {
+    const preferences = {
+      speed: this.speedSlider ? parseFloat(this.speedSlider.value) : 1.0,
+      showTrails: this.settings.showTrails,
+      showBehaviorStates: this.settings.showBehaviorStates,
+      showEnvironmentDetails: this.settings.showEnvironmentDetails,
+      lastSaved: Date.now()
+    };
+    
+    Utils.storage.set('userPreferences', preferences);
+  }
+
+  /**
+   * Load user preferences from localStorage
+   */
+  loadUserPreferences() {
+    const preferences = Utils.storage.get('userPreferences', {});
+    
+    // Restore speed setting
+    if (preferences.speed && this.speedSlider && this.speedValue) {
+      this.speedSlider.value = preferences.speed;
+      this.speedValue.textContent = `${preferences.speed}x`;
+      if (this.simulation) {
+        this.simulation.setSpeed(preferences.speed);
+      }
+    }
+    
+    // Restore display settings
+    if (preferences.showTrails !== undefined) {
+      this.settings.showTrails = preferences.showTrails;
+      const checkbox = document.getElementById('showTrails');
+      if (checkbox) checkbox.checked = preferences.showTrails;
+    }
+    
+    if (preferences.showBehaviorStates !== undefined) {
+      this.settings.showBehaviorStates = preferences.showBehaviorStates;
+      const checkbox = document.getElementById('showBehaviorStates');
+      if (checkbox) checkbox.checked = preferences.showBehaviorStates;
+    }
+    
+    if (preferences.showEnvironmentDetails !== undefined) {
+      this.settings.showEnvironmentDetails = preferences.showEnvironmentDetails;
+      const checkbox = document.getElementById('showEnvironmentDetails');
+      if (checkbox) checkbox.checked = preferences.showEnvironmentDetails;
+    }
+    
+    // Apply settings to renderer
+    this.updateRendererSettings();
   }
 
   /**

@@ -421,4 +421,59 @@ describe('MenuManager', () => {
       expect(mockApp.timeScaleManager.setTimeScale).toHaveBeenCalledWith('HOUR_SCALE')
     })
   })
+
+  describe('World Size Integration Bug', () => {
+    it('should pass correct dimensions for small world size to simulation', async () => {
+      // Setup form with small world size
+      const worldSizeSelect = document.getElementById('worldSize')
+      worldSizeSelect.value = 'small'
+      
+      await menuManager.createWorld()
+      
+      // Should pass worldSize config to simulation, not old dimensions
+      expect(mockApp.simulation.initializeColony).toHaveBeenCalledWith(
+        'forest_floor',
+        expect.objectContaining({
+          worldSize: 'small'
+        })
+      )
+      
+      // Should not pass old MenuManager dimensions
+      expect(mockApp.simulation.initializeColony).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          width: 50,
+          height: 30
+        })
+      )
+    })
+
+    it('should pass correct dimensions for large world size to simulation', async () => {
+      const worldSizeSelect = document.getElementById('worldSize')
+      worldSizeSelect.value = 'large'
+      
+      await menuManager.createWorld()
+      
+      expect(mockApp.simulation.initializeColony).toHaveBeenCalledWith(
+        'forest_floor',
+        expect.objectContaining({
+          worldSize: 'large'
+        })
+      )
+    })
+
+    it('should pass correct dimensions for huge world size to simulation', async () => {
+      const worldSizeSelect = document.getElementById('worldSize')
+      worldSizeSelect.value = 'huge'
+      
+      await menuManager.createWorld()
+      
+      expect(mockApp.simulation.initializeColony).toHaveBeenCalledWith(
+        'forest_floor',
+        expect.objectContaining({
+          worldSize: 'huge'
+        })
+      )
+    })
+  })
 })

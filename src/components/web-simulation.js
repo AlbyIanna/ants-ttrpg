@@ -42,6 +42,17 @@ export class WebSimulation {
     // Simulation state
     this.state = null;
     
+    // Runtime configuration parameters
+    this.antSpeedMultiplier = 1.0;
+    this.explorationRate = 0.3;
+    this.socialCohesion = 0.7;
+    this.weatherSpeedMultiplier = 1.0;
+    this.displayOptions = {
+      showTrails: true,
+      showBehaviorStates: true,
+      showEnvironmentDetails: true
+    };
+    
     // Initialize core systems
     this.initializeSystems();
   }
@@ -69,11 +80,20 @@ export class WebSimulation {
           }
         }
         
-        // Add food sources
-        this.addFoodSources(environment, Utils.randomInt(7, 12));
+        // Add food sources (scale with world size)
+        const baseArea = 75 * 50; // Default world area
+        const currentArea = width * height;
+        const areaRatio = currentArea / baseArea;
+        const baseFoodCount = Utils.randomInt(7, 12);
+        // Use linear scaling for better proportionality but cap growth
+        const scaledFoodCount = Math.floor(baseFoodCount * Math.min(areaRatio, 10));
         
-        // Add hazards
-        this.addHazards(environment, Utils.randomInt(1, 4));
+        this.addFoodSources(environment, Math.max(3, scaledFoodCount));
+        
+        // Add hazards (scale with world size)
+        const baseHazardCount = Utils.randomInt(1, 4);
+        const scaledHazardCount = Math.floor(baseHazardCount * Math.sqrt(areaRatio));
+        this.addHazards(environment, Math.max(1, scaledHazardCount));
         
         return environment;
       }
@@ -259,20 +279,49 @@ export class WebSimulation {
   }
 
   /**
+   * Get world dimensions based on configuration
+   */
+  getWorldDimensions(config = {}) {
+    // Direct width/height override
+    if (config.width && config.height) {
+      return { width: config.width, height: config.height };
+    }
+    
+    // Named world sizes
+    const worldSizeConfigs = {
+      small: { width: 100, height: 75 },
+      medium: { width: 200, height: 150 },
+      large: { width: 300, height: 200 },
+      huge: { width: 500, height: 300 }
+    };
+    
+    if (config.worldSize && worldSizeConfigs[config.worldSize]) {
+      return worldSizeConfigs[config.worldSize];
+    }
+    
+    // Default size (backward compatibility)
+    return { width: 75, height: 50 };
+  }
+
+  /**
    * Initialize a new colony state
    */
-  async initializeColony(biome = 'forest_floor') {
+  async initializeColony(biome = 'forest_floor', config = {}) {
     Utils.performance.start('colonyInit');
     
+    // Determine world dimensions
+    const dimensions = this.getWorldDimensions(config);
+    console.log(1122, dimensions);
+    
     // Generate environment
-    const environment = this.environmentSystem.generate(75, 50, biome);
+    const environment = this.environmentSystem.generate(dimensions.width, dimensions.height, biome);
     const centerX = Math.floor(environment.metadata.width / 2);
     const centerY = Math.floor(environment.metadata.height / 2);
     const nestPosition = { x: centerX, y: centerY };
     
     // Create initial ant population
     const ants = [];
-    const basePopulation = this.colonySystem.basePopulation;
+    const basePopulation = config.startingPopulation || this.colonySystem.basePopulation;
     
     // Role distribution: 60% workers, 30% scouts, 10% soldiers
     const roleDistribution = [
@@ -292,6 +341,7 @@ export class WebSimulation {
       ants: ants,
       food: 10, // Starting food reserves
       morale: 7.5,
+      maxPopulation: config.maxPopulation || this.colonySystem.maxPopulation,
       population: {
         total: ants.length,
         workers: ants.filter(a => a.role === 'worker').length,
@@ -358,7 +408,7 @@ export class WebSimulation {
     if (!this.isRunning) return;
     
     const now = Date.now();
-    const deltaTime = (now - this.lastUpdateTime) * this.simulationSpeed;
+    const deltaTime = (now - this.lastUpdateTime) * this.getEffectiveSpeed();
     
     if (!this.isPaused && deltaTime >= this.updateInterval) {
       this.update(deltaTime);
@@ -665,6 +715,125 @@ export class WebSimulation {
         food.nutrition = Math.min(food.maxNutrition, food.nutrition + food.regenerationRate);
       }
     });
+    
+    // Food consumption - colonies consume food over time
+    this.updateFoodConsumption(deltaTime);
+    
+    // Population dynamics - births and deaths based on food availability
+    this.updatePopulationDynamics(deltaTime);
+  }
+
+  /**
+   * Update food consumption by the colony
+   */
+  updateFoodConsumption(deltaTime) {
+    if (!this.state.ants || this.state.ants.length === 0) return;
+    
+    // Each ant consumes food over time
+    const baseConsumptionRate = 0.1; // Food per ant per second
+    const seasonalMultiplier = this.getSeasonalFoodMultiplier();
+    const consumptionRate = baseConsumptionRate * seasonalMultiplier * (deltaTime / 1000);
+    
+    const totalConsumption = this.state.ants.length * consumptionRate;
+    
+    if (this.state.food > totalConsumption) {
+      this.state.food -= totalConsumption;
+    } else {
+      // Not enough food - mark some ants as hungry/at risk
+      const foodShortage = totalConsumption - this.state.food;
+      this.state.food = 0;
+      
+      // Some ants may die from starvation if food shortage is severe
+      if (foodShortage > 2 && Math.random() < 0.1) {
+        this.killRandomAnt('starvation');
+      }
+    }
+  }
+
+  /**
+   * Update population dynamics (births and deaths)
+   */
+  updatePopulationDynamics(deltaTime) {
+    if (!this.state.ants) return;
+    
+    const currentPopulation = this.state.ants.filter(ant => !ant.isDead).length;
+    const maxPop = this.state.maxPopulation || 50;
+    
+    // Birth rate depends on food availability and population
+    const foodRatio = this.state.food / (currentPopulation * 5); // Target 5 food per ant
+    const populationPressure = Math.max(0, 1 - (currentPopulation / maxPop));
+    
+    // Birth chance increases with food and decreases with population pressure
+    const birthChance = Math.min(0.05, foodRatio * populationPressure * (deltaTime / 1000));
+    
+    if (Math.random() < birthChance && currentPopulation < maxPop && this.state.food > 10) {
+      this.birthNewAnt();
+    }
+    
+    // Natural death rate (very low)
+    const deathChance = 0.001 * (deltaTime / 1000);
+    if (Math.random() < deathChance && currentPopulation > 5) {
+      this.killRandomAnt('natural');
+    }
+    
+    // Remove dead ants from the array
+    this.state.ants = this.state.ants.filter(ant => !ant.isDead);
+  }
+
+  /**
+   * Birth a new ant
+   */
+  birthNewAnt() {
+    const nestPos = this.getNestPosition();
+    const newAntId = Math.max(...this.state.ants.map(a => a.id)) + 1;
+    
+    // Cost food to create new ant
+    if (this.state.food >= 10) {
+      this.state.food -= 10;
+      
+      const newAnt = this.createAnt(newAntId, 'worker', nestPos, this.state.environment);
+      this.state.ants.push(newAnt);
+      
+      this.state.recentDiscoveries.push({
+        type: 'birth',
+        antId: newAntId,
+        message: `New worker ant born!`
+      });
+    }
+  }
+
+  /**
+   * Kill a random ant
+   */
+  killRandomAnt(cause = 'unknown') {
+    const livingAnts = this.state.ants.filter(ant => !ant.isDead);
+    if (livingAnts.length > 0) {
+      const victimIndex = Math.floor(Math.random() * livingAnts.length);
+      const victim = livingAnts[victimIndex];
+      victim.isDead = true;
+      
+      this.state.recentDiscoveries.push({
+        type: 'death',
+        antId: victim.id,
+        cause: cause,
+        message: `Ant #${victim.id} died from ${cause}`
+      });
+    }
+  }
+
+  /**
+   * Get seasonal food multiplier
+   */
+  getSeasonalFoodMultiplier() {
+    if (!this.state.environment.season) return 1.0;
+    
+    switch (this.state.environment.season) {
+      case 'Spring': return 0.8;   // Lower consumption in spring
+      case 'Summer': return 0.7;   // Lower consumption in summer  
+      case 'Autumn': return 1.2;   // Higher consumption preparing for winter
+      case 'Winter': return 1.5;   // Higher consumption in winter
+      default: return 1.0;
+    }
   }
 
   /**
@@ -746,6 +915,138 @@ export class WebSimulation {
    * Set simulation speed
    */
   setSpeed(speed) {
-    this.simulationSpeed = Utils.clamp(speed, 0.1, 5.0);
+    this.simulationSpeed = Utils.clamp(speed, 0.1, 20.0); // Increased max to 20x
+  }
+
+  /**
+   * Set time scale manager for advanced time scaling
+   */
+  setTimeScaleManager(timeScaleManager) {
+    this.timeScaleManager = timeScaleManager;
+  }
+
+  /**
+   * Get effective simulation speed including time scale
+   */
+  getEffectiveSpeed() {
+    let baseSpeed = this.simulationSpeed;
+    
+    // Apply time scale multiplier if available
+    if (this.timeScaleManager && this.timeScaleManager.currentScale) {
+      const timeScale = this.timeScaleManager.currentScale;
+      // Time scale represents simulation seconds per real second
+      // We need to convert this to a speed multiplier
+      baseSpeed *= Math.min(timeScale / 60, 5); // Cap the multiplier at 5x for stability
+    }
+    
+    return baseSpeed;
+  }
+
+  /**
+   * Runtime configuration methods for live parameter adjustment
+   */
+  setFoodAbundance(abundance) {
+    if (!this.state || !this.state.environment) return;
+    
+    // Store the abundance setting for future food generation
+    this.state.environment.foodAbundance = Utils.clamp(abundance, 0.1, 3.0);
+    
+    // Optionally add more food sources if abundance increased significantly
+    if (abundance > 1.5 && Math.random() < 0.3) {
+      this.addFoodSources(this.state.environment, Math.floor(abundance));
+    }
+  }
+
+  setMaxPopulation(maxPop) {
+    if (!this.state) return;
+    
+    this.state.maxPopulation = Utils.clamp(maxPop, 5, 200);
+    
+    // If current population exceeds new max, mark excess ants for removal
+    if (this.state.ants && this.state.ants.length > this.state.maxPopulation) {
+      const excessCount = this.state.ants.length - this.state.maxPopulation;
+      for (let i = 0; i < excessCount; i++) {
+        const antIndex = this.state.ants.length - 1 - i;
+        if (antIndex >= 0) {
+          this.state.ants[antIndex].isDead = true;
+        }
+      }
+    }
+  }
+
+  setAntSpeed(speed) {
+    if (!this.state || !this.state.ants) return;
+    
+    const speedMultiplier = Utils.clamp(speed, 0.1, 3.0);
+    
+    // Update all existing ants' movement speed
+    this.state.ants.forEach(ant => {
+      if (ant.role && this.antBehaviorSystem.roles[ant.role]) {
+        ant.movementSpeed = this.antBehaviorSystem.roles[ant.role].movementSpeed * speedMultiplier;
+      }
+    });
+    
+    // Store the speed multiplier for new ants
+    this.antSpeedMultiplier = speedMultiplier;
+  }
+
+  setExplorationRate(rate) {
+    if (!this.state || !this.state.ants) return;
+    
+    this.explorationRate = Utils.clamp(rate, 0.1, 1.0);
+    
+    // Update ants currently in exploring state
+    this.state.ants.forEach(ant => {
+      if (ant.state === 'exploring') {
+        ant.explorationTendency = this.explorationRate;
+      }
+    });
+  }
+
+  setSocialCohesion(cohesion) {
+    if (!this.state) return;
+    
+    this.socialCohesion = Utils.clamp(cohesion, 0.1, 1.0);
+    // This affects how much ants follow each other's paths
+  }
+
+  setDisplayOption(option, value) {
+    // These are handled by the renderer, just pass through
+    if (this.displayOptions) {
+      this.displayOptions[option] = value;
+    }
+  }
+
+  setSeason(season) {
+    if (!this.state || !this.state.environment) return;
+    
+    this.state.environment.season = season;
+    
+    // Seasonal effects on behavior and environment
+    switch (season) {
+      case 'Spring':
+        this.setFoodAbundance(1.2);
+        break;
+      case 'Summer': 
+        this.setFoodAbundance(1.5);
+        break;
+      case 'Autumn':
+        this.setFoodAbundance(0.8);
+        break;
+      case 'Winter':
+        this.setFoodAbundance(0.4);
+        this.setAntSpeed(0.7); // Slower in winter
+        break;
+    }
+  }
+
+  setWeatherIntensity(intensity) {
+    if (!this.state || !this.state.environment) return;
+    
+    this.state.environment.weatherIntensity = Utils.clamp(intensity, 0.0, 1.0);
+    
+    // Weather affects ant movement speed
+    const weatherEffect = 1.0 - (intensity * 0.3); // Max 30% speed reduction
+    this.weatherSpeedMultiplier = weatherEffect;
   }
 }
