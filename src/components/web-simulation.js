@@ -104,6 +104,11 @@ export class WebSimulation {
           this.addTerrainFeatures(environment, config.terrainFeatures);
         }
         
+        // Initialize pheromone system if specified
+        if (config.pheromoneSystem && config.pheromoneSystem.enabled) {
+          this.initializePheromoneSystem(environment, config.pheromoneSystem, 1);
+        }
+        
         // Add food sources (scale with world size)
         const baseArea = 75 * 50; // Default world area
         const currentArea = width * height;
@@ -386,11 +391,12 @@ export class WebSimulation {
   /**
    * Create a new ant with given parameters
    */
-  createAnt(id, role, nestPos, environment) {
+  createAnt(id, role, nestPos, environment, colonyId = 0) {
     const roleConfig = this.antBehaviorSystem.roles[role];
     const ant = {
       id: id,
       role: role,
+      colonyId: colonyId,
       position: { x: nestPos.x, y: nestPos.y },
       state: role === 'worker' ? 'foraging' : 'exploring',
       energy: roleConfig.energy,
@@ -443,31 +449,76 @@ export class WebSimulation {
     
     // Generate environment
     const environment = this.environmentSystem.generate(dimensions.width, dimensions.height, biome, config);
-    const centerX = Math.floor(environment.metadata.width / 2);
-    const centerY = Math.floor(environment.metadata.height / 2);
-    const nestPosition = { x: centerX, y: centerY };
     
-    // Create initial ant population
+    // Handle multiple nests configuration
+    const nestCount = config.nestCount || 1;
+    const nests = this.generateNests(environment, nestCount, config);
+    
+    // Add territory system if multiple nests or explicitly enabled
+    if ((nestCount > 1 && config.territorySystem && config.territorySystem.enabled) ||
+        (config.territorySystem && config.territorySystem.enabled) ||
+        (nestCount > 1)) { // Auto-enable for multiple nests
+      const territoryConfig = config.territorySystem || { enabled: true, type: 'voronoi' };
+      this.generateTerritoryMap(environment, nests, territoryConfig);
+    }
+    
+    // Create initial ant population for all colonies
     const ants = [];
-    const basePopulation = config.startingPopulation || this.colonySystem.basePopulation;
+    const antsPerColony = config.antsPerColony || config.startingPopulation || this.colonySystem.basePopulation;
     
-    // Role distribution: 60% workers, 30% scouts, 10% soldiers
-    const roleDistribution = [
-      ...Array(Math.floor(basePopulation * 0.6)).fill('worker'),
-      ...Array(Math.floor(basePopulation * 0.3)).fill('scout'),
-      ...Array(Math.ceil(basePopulation * 0.1)).fill('soldier')
-    ];
+    for (let colonyId = 0; colonyId < nestCount; colonyId++) {
+      const nestPosition = nests[colonyId].position;
+      
+      // Role distribution: 60% workers, 30% scouts, 10% soldiers
+      const workerCount = Math.floor(antsPerColony * 0.6);
+      const scoutCount = Math.floor(antsPerColony * 0.3);
+      const soldierCount = antsPerColony - workerCount - scoutCount; // Fill remaining slots
+      
+      const roleDistribution = [
+        ...Array(workerCount).fill('worker'),
+        ...Array(scoutCount).fill('scout'),
+        ...Array(soldierCount).fill('soldier')
+      ];
+      
+      for (let i = 0; i < roleDistribution.length; i++) {
+        const ant = this.createAnt(
+          colonyId * 1000 + i + 1, // Unique ID across colonies
+          roleDistribution[i], 
+          nestPosition, 
+          environment,
+          colonyId
+        );
+        ants.push(ant);
+      }
+    }
     
-    for (let i = 0; i < roleDistribution.length; i++) {
-      const ant = this.createAnt(i + 1, roleDistribution[i], nestPosition, environment);
-      ants.push(ant);
+    // Update nest colony population counts
+    for (let i = 0; i < nestCount; i++) {
+      const colonyAnts = ants.filter(ant => ant.colonyId === i);
+      nests[i].colony.population = {
+        total: colonyAnts.length,
+        workers: colonyAnts.filter(a => a.role === 'worker').length,
+        scouts: colonyAnts.filter(a => a.role === 'scout').length,
+        soldiers: colonyAnts.filter(a => a.role === 'soldier').length
+      };
+    }
+    
+    // Set inter-colony dynamics metadata if configured
+    if (config.interColonyDynamics) {
+      environment.metadata.interColonyDynamics = config.interColonyDynamics;
+    }
+    
+    // Initialize pheromone system if specified
+    if (config.pheromoneSystem && config.pheromoneSystem.enabled) {
+      this.initializePheromoneSystem(environment, config.pheromoneSystem, nestCount);
     }
     
     // Initialize colony state
     this.state = {
       environment: environment,
+      nests: nests,
       ants: ants,
-      food: 10, // Starting food reserves
+      food: 10, // Starting food reserves (legacy - now per-colony)
       morale: 7.5,
       maxPopulation: config.maxPopulation || this.colonySystem.maxPopulation,
       population: {
@@ -479,6 +530,7 @@ export class WebSimulation {
       biome: biome,
       recentMovements: [],
       recentDiscoveries: [],
+      nestPosition: nests[0].position, // Legacy compatibility
       narrative_context: {
         current_season: 'spring',
         day_cycle: 'day',
@@ -567,6 +619,9 @@ export class WebSimulation {
     
     // Update environment
     this.updateEnvironment(deltaTime);
+    
+    // Update pheromone system
+    this.updatePheromoneSystem();
     
     // Update colony stats
     this.updateColonyStats();
@@ -1453,5 +1508,568 @@ export class WebSimulation {
         terrain[y][x] = '🌲';
       }
     });
+  }
+
+  /**
+   * Generate nests for multiple colony support
+   */
+  generateNests(environment, nestCount, config = {}) {
+    const { width, height } = environment.metadata;
+    const nests = [];
+    
+    if (nestCount === 1) {
+      // Single nest in center (legacy behavior)
+      const centerX = Math.floor(width / 2);
+      const centerY = Math.floor(height / 2);
+      
+      nests.push({
+        id: 0,
+        position: { x: centerX, y: centerY },
+        colony: {
+          id: 0,
+          food: 10,
+          population: { total: 0, workers: 0, scouts: 0, soldiers: 0 },
+          morale: 7.5,
+          diplomacy: {},
+          territorialControl: 1.0
+        }
+      });
+      
+      // Place nest tile in terrain
+      environment.terrain[centerY][centerX] = '🏠';
+    } else {
+      // Multiple nests with different placement strategies
+      const nestSpacing = config.nestSpacing || 'distributed';
+      const minDistance = config.minNestDistance || Math.min(width, height) / 4;
+      
+      const positions = this.generateNestPositions(width, height, nestCount, nestSpacing, minDistance);
+      
+      for (let i = 0; i < nestCount; i++) {
+        const position = positions[i];
+        
+        nests.push({
+          id: i,
+          position: position,
+          colony: {
+            id: i,
+            food: 10,
+            population: { total: 0, workers: 0, scouts: 0, soldiers: 0 },
+            morale: 7.5,
+            diplomacy: {},
+            territorialControl: 0.8
+          }
+        });
+        
+        // Place nest tiles in terrain (ensure valid coordinates)
+        const x = Math.floor(position.x);
+        const y = Math.floor(position.y);
+        if (y >= 0 && y < environment.terrain.length && x >= 0 && x < environment.terrain[0].length) {
+          environment.terrain[y][x] = '🏠';
+        }
+      }
+    }
+    
+    return nests;
+  }
+
+  /**
+   * Generate nest positions based on placement strategy
+   */
+  generateNestPositions(width, height, nestCount, nestSpacing, minDistance) {
+    const positions = [];
+    
+    switch (nestSpacing) {
+      case 'corners':
+        return this.generateCornerNestPositions(width, height, nestCount);
+      
+      case 'grid':
+        return this.generateGridNestPositions(width, height, nestCount);
+      
+      case 'distributed':
+      default:
+        return this.generateDistributedNestPositions(width, height, nestCount, minDistance);
+    }
+  }
+
+  /**
+   * Generate nest positions in corners
+   */
+  generateCornerNestPositions(width, height, nestCount) {
+    const positions = [];
+    const margin = Math.min(width, height) * 0.15; // 15% margin from edges
+    
+    const cornerPositions = [
+      { x: Math.floor(width * 0.25), y: Math.floor(height * 0.25) },
+      { x: Math.floor(width * 0.75), y: Math.floor(height * 0.25) },
+      { x: Math.floor(width * 0.25), y: Math.floor(height * 0.75) },
+      { x: Math.floor(width * 0.75), y: Math.floor(height * 0.75) }
+    ];
+    
+    for (let i = 0; i < Math.min(nestCount, cornerPositions.length); i++) {
+      positions.push(cornerPositions[i]);
+    }
+    
+    // If more nests needed, place randomly
+    while (positions.length < nestCount) {
+      const x = Utils.randomInt(margin, width - margin);
+      const y = Utils.randomInt(margin, height - margin);
+      positions.push({ x, y });
+    }
+    
+    return positions;
+  }
+
+  /**
+   * Generate nest positions in grid pattern
+   */
+  generateGridNestPositions(width, height, nestCount) {
+    const positions = [];
+    const gridSize = Math.ceil(Math.sqrt(nestCount));
+    const cellWidth = Math.floor(width / gridSize);
+    const cellHeight = Math.floor(height / gridSize);
+    
+    for (let i = 0; i < nestCount; i++) {
+      const gridX = i % gridSize;
+      const gridY = Math.floor(i / gridSize);
+      
+      const x = Math.floor(cellWidth * (gridX + 0.5));
+      const y = Math.floor(cellHeight * (gridY + 0.5));
+      
+      positions.push({ x, y });
+    }
+    
+    return positions;
+  }
+
+  /**
+   * Generate distributed nest positions with minimum distance
+   */
+  generateDistributedNestPositions(width, height, nestCount, minDistance) {
+    const positions = [];
+    const margin = Math.min(width, height) * 0.1; // 10% margin
+    const maxAttempts = 100;
+    
+    for (let i = 0; i < nestCount; i++) {
+      let position = null;
+      let attempts = 0;
+      
+      do {
+        const x = Utils.randomInt(margin, width - margin);
+        const y = Utils.randomInt(margin, height - margin);
+        position = { x, y };
+        
+        // Check minimum distance from existing nests
+        const validPosition = positions.every(existingPos => {
+          const distance = Utils.distance(x, y, existingPos.x, existingPos.y);
+          return distance >= minDistance;
+        });
+        
+        if (validPosition) {
+          break;
+        }
+        
+        position = null;
+        attempts++;
+      } while (attempts < maxAttempts);
+      
+      // If couldn't find valid position, place anyway with reduced distance
+      if (!position) {
+        const x = Utils.randomInt(margin, width - margin);
+        const y = Utils.randomInt(margin, height - margin);
+        position = { x, y };
+      }
+      
+      positions.push(position);
+    }
+    
+    return positions;
+  }
+
+  /**
+   * Generate territory map for multiple colonies
+   */
+  generateTerritoryMap(environment, nests, territoryConfig) {
+    const { width, height } = environment.metadata;
+    const { type = 'voronoi', neutralZones = false, neutralZoneWidth = 2 } = territoryConfig;
+    
+    // Initialize territory map
+    environment.territoryMap = [];
+    for (let y = 0; y < height; y++) {
+      environment.territoryMap[y] = new Array(width).fill(null);
+    }
+    
+    switch (type) {
+      case 'grid':
+        this.generateGridTerritories(environment.territoryMap, width, height, nests);
+        break;
+      
+      case 'voronoi':
+      default:
+        this.generateVoronoiTerritories(environment.territoryMap, width, height, nests);
+        break;
+    }
+    
+    // Add neutral zones if requested
+    if (neutralZones) {
+      this.addNeutralZones(environment.territoryMap, width, height, neutralZoneWidth);
+    }
+    
+    // Store territory config in metadata
+    environment.metadata.interColonyDynamics = territoryConfig;
+  }
+
+  /**
+   * Generate grid-based territory divisions
+   */
+  generateGridTerritories(territoryMap, width, height, nests) {
+    const nestCount = nests.length;
+    const gridSize = Math.ceil(Math.sqrt(nestCount));
+    const cellWidth = Math.floor(width / gridSize);
+    const cellHeight = Math.floor(height / gridSize);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const gridX = Math.floor(x / cellWidth);
+        const gridY = Math.floor(y / cellHeight);
+        const territoryId = (gridY * gridSize + gridX) % nestCount;
+        
+        territoryMap[y][x] = territoryId;
+      }
+    }
+  }
+
+  /**
+   * Generate Voronoi-based territory divisions
+   */
+  generateVoronoiTerritories(territoryMap, width, height, nests) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let closestNest = 0;
+        let minDistance = Infinity;
+        
+        // Find closest nest for this cell
+        for (let i = 0; i < nests.length; i++) {
+          const distance = Utils.distance(x, y, nests[i].position.x, nests[i].position.y);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestNest = i;
+          }
+        }
+        
+        territoryMap[y][x] = closestNest;
+      }
+    }
+  }
+
+  /**
+   * Add neutral zones between territories
+   */
+  addNeutralZones(territoryMap, width, height, neutralZoneWidth) {
+    const originalMap = territoryMap.map(row => [...row]); // Deep copy
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const currentTerritory = originalMap[y][x];
+        
+        // Check if this cell is near a territory boundary
+        let nearBoundary = false;
+        
+        for (let dy = -neutralZoneWidth; dy <= neutralZoneWidth; dy++) {
+          for (let dx = -neutralZoneWidth; dx <= neutralZoneWidth; dx++) {
+            const ny = y + dy;
+            const nx = x + dx;
+            
+            if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+              if (originalMap[ny][nx] !== currentTerritory) {
+                nearBoundary = true;
+                break;
+              }
+            }
+          }
+          if (nearBoundary) break;
+        }
+        
+        // Mark as neutral zone if near boundary
+        if (nearBoundary) {
+          territoryMap[y][x] = -1; // -1 indicates neutral zone
+        }
+      }
+    }
+  }
+
+  /**
+   * Initialize pheromone communication system
+   */
+  initializePheromoneSystem(environment, pheromoneConfig, nestCount) {
+    const { width, height } = environment.metadata;
+    
+    // Store pheromone configuration
+    environment.metadata.pheromoneSystem = pheromoneConfig;
+    
+    // Initialize main pheromone map
+    environment.pheromoneMap = [];
+    for (let y = 0; y < height; y++) {
+      environment.pheromoneMap[y] = new Array(width).fill(0);
+    }
+    
+    // Initialize different pheromone types if configured
+    if (pheromoneConfig.trailTypes) {
+      environment.pheromoneTypes = {};
+      pheromoneConfig.trailTypes.forEach(type => {
+        environment.pheromoneTypes[type] = [];
+        for (let y = 0; y < height; y++) {
+          environment.pheromoneTypes[type][y] = new Array(width).fill(0);
+        }
+      });
+    }
+    
+    // Initialize colony-specific pheromones for multiple nests
+    if (nestCount > 1 && pheromoneConfig.colonySpecific) {
+      environment.pheromoneByColony = {};
+      for (let i = 0; i < nestCount; i++) {
+        environment.pheromoneByColony[i] = [];
+        for (let y = 0; y < height; y++) {
+          environment.pheromoneByColony[i][y] = new Array(width).fill(0);
+        }
+      }
+    }
+    
+    // Initialize pheromone system state
+    environment.pheromoneSystem = {
+      lastUpdate: 0,
+      decayCounter: 0,
+      reinforcementMap: [], // Track trail reinforcement
+      config: pheromoneConfig
+    };
+    
+    // Initialize reinforcement map
+    for (let y = 0; y < height; y++) {
+      environment.pheromoneSystem.reinforcementMap[y] = new Array(width).fill(0);
+    }
+  }
+
+  /**
+   * Update pheromone system during simulation
+   */
+  updatePheromoneSystem() {
+    if (!this.state.environment.pheromoneMap) return;
+    
+    const environment = this.state.environment;
+    const config = environment.metadata.pheromoneSystem;
+    const { width, height } = environment.metadata;
+    
+    // Decay pheromones over time
+    if (config.decayRate && config.decayRate > 0) {
+      this.decayPheromones(environment, config);
+    }
+    
+    // Update ant pheromone laying
+    this.state.ants.forEach(ant => {
+      this.layPheromones(ant, environment, config);
+    });
+    
+    // Update ant pathfinding based on pheromones
+    this.state.ants.forEach(ant => {
+      this.influenceAntMovement(ant, environment, config);
+    });
+  }
+
+  /**
+   * Decay pheromone trails over time
+   */
+  decayPheromones(environment, config) {
+    const { width, height } = environment.metadata;
+    const decayRate = config.decayRate || 0.1;
+    const evaporationThreshold = config.evaporationThreshold || 0.05;
+    
+    // Decay main pheromone map
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (environment.pheromoneMap[y][x] > 0) {
+          environment.pheromoneMap[y][x] *= (1 - decayRate);
+          
+          // Evaporate if below threshold
+          if (environment.pheromoneMap[y][x] < evaporationThreshold) {
+            environment.pheromoneMap[y][x] = 0;
+          }
+        }
+      }
+    }
+    
+    // Decay typed pheromones
+    if (environment.pheromoneTypes) {
+      Object.keys(environment.pheromoneTypes).forEach(type => {
+        const typeMap = environment.pheromoneTypes[type];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (typeMap[y][x] > 0) {
+              typeMap[y][x] *= (1 - decayRate);
+              if (typeMap[y][x] < evaporationThreshold) {
+                typeMap[y][x] = 0;
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Decay colony-specific pheromones
+    if (environment.pheromoneByColony) {
+      Object.keys(environment.pheromoneByColony).forEach(colonyId => {
+        const colonyMap = environment.pheromoneByColony[colonyId];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (colonyMap[y][x] > 0) {
+              colonyMap[y][x] *= (1 - decayRate);
+              if (colonyMap[y][x] < evaporationThreshold) {
+                colonyMap[y][x] = 0;
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Lay pheromones as ants move
+   */
+  layPheromones(ant, environment, config) {
+    const { x, y } = ant.position;
+    const { width, height } = environment.metadata;
+    
+    // Check bounds
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    
+    // Check if position is valid for pheromone laying
+    const terrain = environment.terrain[y][x];
+    if (terrain === '🌊' || terrain === '⛰️') return; // Can't lay on impassable terrain
+    
+    const trailStrength = config.trailStrength || 1.0;
+    let pheromoneAmount = 0;
+    
+    // Determine pheromone amount based on ant state
+    switch (ant.state) {
+      case 'returning':
+        pheromoneAmount = trailStrength * (config.strengthMultipliers?.food || 1.5);
+        break;
+      case 'exploring':
+        pheromoneAmount = trailStrength * (config.strengthMultipliers?.exploration || 0.5);
+        break;
+      case 'foraging':
+        pheromoneAmount = trailStrength * 1.0;
+        break;
+      default:
+        pheromoneAmount = trailStrength * 0.3;
+    }
+    
+    // Lay pheromones in main map
+    environment.pheromoneMap[y][x] = Math.min(
+      environment.pheromoneMap[y][x] + pheromoneAmount,
+      config.maxStrength || 5.0
+    );
+    
+    // Lay typed pheromones
+    if (environment.pheromoneTypes) {
+      if (ant.state === 'returning' && ant.carryingFood) {
+        environment.pheromoneTypes.food[y][x] = Math.min(
+          environment.pheromoneTypes.food[y][x] + pheromoneAmount,
+          config.maxStrength || 5.0
+        );
+      } else if (ant.state === 'exploring') {
+        environment.pheromoneTypes.exploration[y][x] = Math.min(
+          environment.pheromoneTypes.exploration[y][x] + pheromoneAmount * 0.5,
+          config.maxStrength || 5.0
+        );
+      }
+    }
+    
+    // Lay colony-specific pheromones
+    if (environment.pheromoneByColony && ant.colonyId !== undefined) {
+      const colonyMap = environment.pheromoneByColony[ant.colonyId];
+      if (colonyMap) {
+        colonyMap[y][x] = Math.min(
+          colonyMap[y][x] + pheromoneAmount,
+          config.maxStrength || 5.0
+        );
+      }
+    }
+  }
+
+  /**
+   * Influence ant movement based on pheromone trails
+   */
+  influenceAntMovement(ant, environment, config) {
+    if (!config.pathfindingWeight || ant.state === 'resting') return;
+    
+    const { x, y } = ant.position;
+    const { width, height } = environment.metadata;
+    const followProbability = config.followProbability || 0.7;
+    
+    // Random chance to ignore pheromones (exploration vs exploitation)
+    if (Math.random() > followProbability) return;
+    
+    // Find direction with strongest pheromone gradient
+    const directions = [
+      { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
+      { dx: -1, dy: 0 },                     { dx: 1, dy: 0 },
+      { dx: -1, dy: 1 },  { dx: 0, dy: 1 },  { dx: 1, dy: 1 }
+    ];
+    
+    let bestDirection = null;
+    let bestStrength = 0;
+    
+    directions.forEach(dir => {
+      const nx = x + dir.dx;
+      const ny = y + dir.dy;
+      
+      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+        let strength = environment.pheromoneMap[ny][nx];
+        
+        // Boost strength for relevant pheromone types
+        if (environment.pheromoneTypes) {
+          if (ant.state === 'foraging' && environment.pheromoneTypes.food) {
+            strength += environment.pheromoneTypes.food[ny][nx] * 2.0;
+          }
+          if (ant.state === 'exploring' && environment.pheromoneTypes.exploration) {
+            strength += environment.pheromoneTypes.exploration[ny][nx] * 1.0;
+          }
+        }
+        
+        // Check for colony-specific pheromones
+        if (environment.pheromoneByColony && ant.colonyId !== undefined) {
+          const colonyMap = environment.pheromoneByColony[ant.colonyId];
+          if (colonyMap) {
+            strength += colonyMap[ny][nx] * 1.5; // Prefer own colony's trails
+          }
+          
+          // Reduce attraction to other colonies' trails
+          Object.keys(environment.pheromoneByColony).forEach(otherColonyId => {
+            if (parseInt(otherColonyId) !== ant.colonyId) {
+              const otherMap = environment.pheromoneByColony[otherColonyId];
+              const crossColonyFactor = config.crossColonyInteraction || 0.1;
+              strength += otherMap[ny][nx] * crossColonyFactor;
+            }
+          });
+        }
+        
+        if (strength > bestStrength) {
+          bestStrength = strength;
+          bestDirection = dir;
+        }
+      }
+    });
+    
+    // Apply pheromone influence to ant's target position
+    if (bestDirection && bestStrength > 0.1) {
+      const influence = config.trailInfluence || 1.0;
+      const newX = Utils.clamp(x + bestDirection.dx, 0, width - 1);
+      const newY = Utils.clamp(y + bestDirection.dy, 0, height - 1);
+      
+      // Set or modify ant's target position based on pheromone influence
+      if (Math.random() < influence * 0.5) {
+        ant.targetPosition = { x: newX, y: newY };
+      }
+    }
   }
 }
