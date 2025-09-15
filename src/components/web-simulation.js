@@ -63,7 +63,7 @@ export class WebSimulation {
   initializeSystems() {
     // Environment generation
     this.environmentSystem = {
-      generate: (width = 75, height = 50, biome = 'forest_floor') => {
+      generate: (width = 75, height = 50, biome = 'forest_floor', config = {}) => {
         const environment = {
           metadata: { width, height, biome },
           terrain: [],
@@ -72,12 +72,36 @@ export class WebSimulation {
           biome: biome
         };
         
-        // Generate terrain
-        for (let y = 0; y < height; y++) {
-          environment.terrain[y] = [];
-          for (let x = 0; x < width; x++) {
-            environment.terrain[y][x] = this.generateTerrainCell(x, y, width, height, biome);
+        // Check if this is a multi-biome world
+        if (biome === 'multi_biome' && config.biomeTypes && config.biomeTypes.length > 1) {
+          // Multi-biome world generation
+          environment.metadata.biomeTypes = config.biomeTypes;
+          environment.metadata.biomeDistribution = config.biomeDistribution || 'zoned';
+          
+          // Generate biome map
+          environment.biomeMap = this.generateBiomeMap(width, height, config);
+          
+          // Generate terrain using biome map
+          for (let y = 0; y < height; y++) {
+            environment.terrain[y] = [];
+            for (let x = 0; x < width; x++) {
+              const cellBiome = environment.biomeMap[y][x];
+              environment.terrain[y][x] = this.generateTerrainCell(x, y, width, height, cellBiome);
+            }
           }
+        } else {
+          // Single biome world generation (existing behavior)
+          for (let y = 0; y < height; y++) {
+            environment.terrain[y] = [];
+            for (let x = 0; x < width; x++) {
+              environment.terrain[y][x] = this.generateTerrainCell(x, y, width, height, biome);
+            }
+          }
+        }
+        
+        // Add terrain features if specified
+        if (config.terrainFeatures) {
+          this.addTerrainFeatures(environment, config.terrainFeatures);
         }
         
         // Add food sources (scale with world size)
@@ -149,6 +173,110 @@ export class WebSimulation {
         seasonalModifier: 1.0
       }
     };
+  }
+
+  /**
+   * Generate biome map for multi-biome worlds
+   */
+  generateBiomeMap(width, height, config) {
+    const biomeMap = [];
+    const { biomeTypes, biomeDistribution = 'zoned' } = config;
+    
+    // Initialize biome map
+    for (let y = 0; y < height; y++) {
+      biomeMap[y] = [];
+    }
+    
+    switch (biomeDistribution) {
+      case 'zoned':
+        this.generateZonedBiomes(biomeMap, width, height, biomeTypes);
+        break;
+      case 'random':
+        this.generateRandomBiomes(biomeMap, width, height, biomeTypes, config.biomeRandomness || 0.3);
+        break;
+      case 'striped':
+        this.generateStripedBiomes(biomeMap, width, height, biomeTypes, config.stripeDirection || 'horizontal');
+        break;
+      default:
+        // Fallback to zoned
+        this.generateZonedBiomes(biomeMap, width, height, biomeTypes);
+    }
+    
+    return biomeMap;
+  }
+  
+  /**
+   * Generate zoned biome distribution (distinct regions)
+   */
+  generateZonedBiomes(biomeMap, width, height, biomeTypes) {
+    const numBiomes = biomeTypes.length;
+    
+    // Create zones based on grid divisions
+    const zonesPerRow = Math.ceil(Math.sqrt(numBiomes));
+    const zonesPerCol = Math.ceil(numBiomes / zonesPerRow);
+    
+    const zoneWidth = width / zonesPerRow;
+    const zoneHeight = height / zonesPerCol;
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const zoneX = Math.floor(x / zoneWidth);
+        const zoneY = Math.floor(y / zoneHeight);
+        const biomeIndex = (zoneY * zonesPerRow + zoneX) % numBiomes;
+        biomeMap[y][x] = biomeTypes[biomeIndex];
+      }
+    }
+  }
+  
+  /**
+   * Generate random biome distribution
+   */
+  generateRandomBiomes(biomeMap, width, height, biomeTypes, randomness) {
+    // Start with first biome
+    let currentBiome = biomeTypes[0];
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // Randomly change biome based on randomness factor
+        if (Math.random() < randomness) {
+          currentBiome = biomeTypes[Math.floor(Math.random() * biomeTypes.length)];
+        }
+        biomeMap[y][x] = currentBiome;
+      }
+    }
+  }
+  
+  /**
+   * Generate striped biome distribution
+   */
+  generateStripedBiomes(biomeMap, width, height, biomeTypes, direction) {
+    const numBiomes = biomeTypes.length;
+    
+    if (direction === 'horizontal') {
+      // Horizontal stripes
+      const stripeHeight = Math.ceil(height / numBiomes);
+      
+      for (let y = 0; y < height; y++) {
+        const biomeIndex = Math.floor(y / stripeHeight) % numBiomes;
+        const biome = biomeTypes[biomeIndex];
+        
+        for (let x = 0; x < width; x++) {
+          biomeMap[y][x] = biome;
+        }
+      }
+    } else {
+      // Vertical stripes
+      const stripeWidth = Math.ceil(width / numBiomes);
+      
+      for (let x = 0; x < width; x++) {
+        const biomeIndex = Math.floor(x / stripeWidth) % numBiomes;
+        const biome = biomeTypes[biomeIndex];
+        
+        for (let y = 0; y < height; y++) {
+          biomeMap[y][x] = biome;
+        }
+      }
+    }
   }
 
   /**
@@ -314,7 +442,7 @@ export class WebSimulation {
     console.log(1122, dimensions);
     
     // Generate environment
-    const environment = this.environmentSystem.generate(dimensions.width, dimensions.height, biome);
+    const environment = this.environmentSystem.generate(dimensions.width, dimensions.height, biome, config);
     const centerX = Math.floor(environment.metadata.width / 2);
     const centerY = Math.floor(environment.metadata.height / 2);
     const nestPosition = { x: centerX, y: centerY };
@@ -1048,5 +1176,282 @@ export class WebSimulation {
     // Weather affects ant movement speed
     const weatherEffect = 1.0 - (intensity * 0.3); // Max 30% speed reduction
     this.weatherSpeedMultiplier = weatherEffect;
+  }
+
+  /**
+   * Add terrain features to environment
+   */
+  addTerrainFeatures(environment, terrainFeatures) {
+    const { width, height } = environment.metadata;
+    
+    // Initialize terrain features metadata
+    environment.metadata.terrainFeatures = {};
+    
+    // Generate rivers
+    if (terrainFeatures.rivers && terrainFeatures.rivers.enabled) {
+      this.generateRivers(environment, terrainFeatures.rivers);
+      environment.metadata.terrainFeatures.rivers = terrainFeatures.rivers;
+    }
+    
+    // Generate mountains
+    if (terrainFeatures.mountains && terrainFeatures.mountains.enabled) {
+      this.generateMountains(environment, terrainFeatures.mountains);
+      environment.metadata.terrainFeatures.mountains = terrainFeatures.mountains;
+    }
+    
+    // Generate forests
+    if (terrainFeatures.forests && terrainFeatures.forests.enabled) {
+      this.generateForests(environment, terrainFeatures.forests);
+      environment.metadata.terrainFeatures.forests = terrainFeatures.forests;
+    }
+  }
+
+  /**
+   * Generate rivers in the environment
+   */
+  generateRivers(environment, riverConfig) {
+    const { width, height } = environment.metadata;
+    const { count = 1, width: riverWidth = 1 } = riverConfig;
+    
+    for (let i = 0; i < count; i++) {
+      this.generateSingleRiver(environment.terrain, width, height, riverWidth);
+    }
+  }
+
+  /**
+   * Generate a single river path
+   */
+  generateSingleRiver(terrain, width, height, riverWidth) {
+    // Choose random start and end points
+    let startX, startY, endX, endY;
+    
+    // Start from edges
+    const edge = Math.random();
+    if (edge < 0.25) { // Top edge
+      startX = Utils.randomInt(1, width - 2);
+      startY = 1;
+    } else if (edge < 0.5) { // Right edge
+      startX = width - 2;
+      startY = Utils.randomInt(1, height - 2);
+    } else if (edge < 0.75) { // Bottom edge
+      startX = Utils.randomInt(1, width - 2);
+      startY = height - 2;
+    } else { // Left edge
+      startX = 1;
+      startY = Utils.randomInt(1, height - 2);
+    }
+    
+    // End at opposite or adjacent edge
+    const oppositeEdge = (edge + 0.5) % 1;
+    if (oppositeEdge < 0.25) {
+      endX = Utils.randomInt(1, width - 2);
+      endY = 1;
+    } else if (oppositeEdge < 0.5) {
+      endX = width - 2;
+      endY = Utils.randomInt(1, height - 2);
+    } else if (oppositeEdge < 0.75) {
+      endX = Utils.randomInt(1, width - 2);
+      endY = height - 2;
+    } else {
+      endX = 1;
+      endY = Utils.randomInt(1, height - 2);
+    }
+    
+    // Generate path using simple pathfinding
+    const path = this.generateRiverPath(startX, startY, endX, endY, width, height);
+    
+    // Place river tiles along path
+    path.forEach(point => {
+      for (let dy = -Math.floor(riverWidth/2); dy <= Math.floor(riverWidth/2); dy++) {
+        for (let dx = -Math.floor(riverWidth/2); dx <= Math.floor(riverWidth/2); dx++) {
+          const x = point.x + dx;
+          const y = point.y + dy;
+          if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
+            // Don't overwrite nest
+            if (terrain[y][x] !== '🏠') {
+              terrain[y][x] = '🌊';
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Generate river path between two points
+   */
+  generateRiverPath(startX, startY, endX, endY, width, height) {
+    const path = [];
+    let currentX = startX;
+    let currentY = startY;
+    
+    path.push({ x: currentX, y: currentY });
+    
+    while (currentX !== endX || currentY !== endY) {
+      // Choose direction with bias toward target
+      const dx = endX - currentX;
+      const dy = endY - currentY;
+      
+      let moveX = 0, moveY = 0;
+      
+      // Add some randomness to create natural curves
+      if (Math.random() < 0.7) { // 70% chance to move toward target
+        if (Math.abs(dx) > Math.abs(dy)) {
+          moveX = dx > 0 ? 1 : -1;
+        } else {
+          moveY = dy > 0 ? 1 : -1;
+        }
+      } else { // 30% chance for random direction (creates curves)
+        const directions = [];
+        if (currentX > 1) directions.push([-1, 0]);
+        if (currentX < width - 2) directions.push([1, 0]);
+        if (currentY > 1) directions.push([0, -1]);
+        if (currentY < height - 2) directions.push([0, 1]);
+        
+        if (directions.length > 0) {
+          const randomDir = directions[Math.floor(Math.random() * directions.length)];
+          moveX = randomDir[0];
+          moveY = randomDir[1];
+        }
+      }
+      
+      currentX = Utils.clamp(currentX + moveX, 1, width - 2);
+      currentY = Utils.clamp(currentY + moveY, 1, height - 2);
+      
+      path.push({ x: currentX, y: currentY });
+      
+      // Safety check to prevent infinite loops
+      if (path.length > width + height) {
+        break;
+      }
+    }
+    
+    return path;
+  }
+
+  /**
+   * Generate mountains in the environment
+   */
+  generateMountains(environment, mountainConfig) {
+    const { width, height } = environment.metadata;
+    const { ranges = 1, size = 'medium' } = mountainConfig;
+    
+    // Define mountain sizes
+    const sizeMap = {
+      small: { minRadius: 3, maxRadius: 6, density: 0.6 },
+      medium: { minRadius: 5, maxRadius: 10, density: 0.7 },
+      large: { minRadius: 8, maxRadius: 15, density: 0.8 }
+    };
+    
+    const mountainSize = sizeMap[size] || sizeMap.medium;
+    
+    for (let i = 0; i < ranges; i++) {
+      this.generateMountainRange(environment.terrain, width, height, mountainSize);
+    }
+  }
+
+  /**
+   * Generate a single mountain range
+   */
+  generateMountainRange(terrain, width, height, mountainSize) {
+    // Choose random center point away from edges and nest
+    const centerX = Utils.randomInt(mountainSize.maxRadius, width - mountainSize.maxRadius);
+    const centerY = Utils.randomInt(mountainSize.maxRadius, height - mountainSize.maxRadius);
+    
+    // Avoid nest area
+    const nestX = Math.floor(width / 2);
+    const nestY = Math.floor(height / 2);
+    if (Utils.distance(centerX, centerY, nestX, nestY) < mountainSize.maxRadius + 3) {
+      // Try a different position
+      return this.generateMountainRange(terrain, width, height, mountainSize);
+    }
+    
+    const radius = Utils.randomInt(mountainSize.minRadius, mountainSize.maxRadius);
+    
+    // Create mountain cluster
+    for (let y = centerY - radius; y <= centerY + radius; y++) {
+      for (let x = centerX - radius; x <= centerX + radius; x++) {
+        if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
+          const distance = Utils.distance(x, y, centerX, centerY);
+          const probability = Math.max(0, (radius - distance) / radius) * mountainSize.density;
+          
+          if (Math.random() < probability && terrain[y][x] !== '🏠' && terrain[y][x] !== '🌊') {
+            terrain[y][x] = '⛰️';
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Generate forests in the environment
+   */
+  generateForests(environment, forestConfig) {
+    const { width, height } = environment.metadata;
+    const { patches = 2, density = 0.7 } = forestConfig;
+    
+    for (let i = 0; i < patches; i++) {
+      this.generateForestPatch(environment.terrain, width, height, density);
+    }
+  }
+
+  /**
+   * Generate a single forest patch
+   */
+  generateForestPatch(terrain, width, height, density) {
+    // Choose random center point
+    const centerX = Utils.randomInt(5, width - 5);
+    const centerY = Utils.randomInt(5, height - 5);
+    
+    // Avoid nest area
+    const nestX = Math.floor(width / 2);
+    const nestY = Math.floor(height / 2);
+    if (Utils.distance(centerX, centerY, nestX, nestY) < 8) {
+      // Try a different position
+      return this.generateForestPatch(terrain, width, height, density);
+    }
+    
+    const patchSize = Utils.randomInt(8, 12);
+    
+    // Create forest patch using organic growth pattern
+    const forestCells = new Set();
+    const queue = [{ x: centerX, y: centerY }];
+    forestCells.add(`${centerX},${centerY}`);
+    
+    while (queue.length > 0 && forestCells.size < patchSize * patchSize * density) {
+      const current = queue.shift();
+      
+      // Add neighbors with decreasing probability
+      const neighbors = [
+        { x: current.x - 1, y: current.y },
+        { x: current.x + 1, y: current.y },
+        { x: current.x, y: current.y - 1 },
+        { x: current.x, y: current.y + 1 }
+      ];
+      
+      neighbors.forEach(neighbor => {
+        const key = `${neighbor.x},${neighbor.y}`;
+        if (!forestCells.has(key) && 
+            neighbor.x > 0 && neighbor.x < width - 1 && 
+            neighbor.y > 0 && neighbor.y < height - 1) {
+          
+          const distance = Utils.distance(neighbor.x, neighbor.y, centerX, centerY);
+          const probability = Math.max(0, (patchSize - distance) / patchSize) * density;
+          
+          if (Math.random() < probability) {
+            forestCells.add(key);
+            queue.push(neighbor);
+          }
+        }
+      });
+    }
+    
+    // Place forest tiles
+    forestCells.forEach(cellKey => {
+      const [x, y] = cellKey.split(',').map(Number);
+      if (terrain[y][x] !== '🏠' && terrain[y][x] !== '🌊' && terrain[y][x] !== '⛰️') {
+        terrain[y][x] = '🌲';
+      }
+    });
   }
 }

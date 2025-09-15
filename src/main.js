@@ -5,11 +5,8 @@
 
 import { Utils } from './components/utils.js';
 import { WebSimulation } from './components/web-simulation.js';
-import { PixelRenderer } from './components/pixel-renderer.js';
-import { LayeredRenderer } from './components/layered-renderer.js';
+import { SimpleRenderer } from './components/simple-renderer.js';
 import { MenuManager } from './components/menu-manager.js';
-import { TimeScaleManager } from './components/time-scale-manager.js';
-import { RuntimeConfigPanel } from './components/runtime-config-panel.js';
 import './styles/styles.css';
 
 class AntColonyApp {
@@ -18,8 +15,6 @@ class AntColonyApp {
     this.simulation = null;
     this.renderer = null;
     this.menuManager = null;
-    this.timeScaleManager = null;
-    this.runtimeConfigPanel = null;
     
     // App state
     this.isInitialized = false;
@@ -48,9 +43,9 @@ class AntColonyApp {
 
     // Vite HMR support
     if (import.meta.hot) {
-      import.meta.hot.accept('./components/pixel-renderer.js', (newModule) => {
-        console.log('🔄 Hot reloading pixel renderer...');
-        this.renderer = new newModule.PixelRenderer();
+      import.meta.hot.accept('./components/simple-renderer.js', (newModule) => {
+        console.log('🔄 Hot reloading simple renderer...');
+        this.renderer = new newModule.SimpleRenderer();
         this.setupRendererCallbacks();
         if (this.simulation && this.simulation.state) {
           this.renderer.render(this.simulation.state, this.simulation.getSimulationStats());
@@ -101,24 +96,14 @@ class AntColonyApp {
    * Initialize core simulation systems
    */
   async initializeSystems() {
-    // Create time scale manager first
-    this.timeScaleManager = new TimeScaleManager();
-    
     // Create simulation engine
     this.simulation = new WebSimulation();
     this.setupSimulationCallbacks();
     
-    // Pass time manager to simulation
-    if (this.simulation.setTimeScaleManager) {
-      this.simulation.setTimeScaleManager(this.timeScaleManager);
-    }
-    
-    // Create renderer - use LayeredRenderer for advanced features
-    this.renderer = new LayeredRenderer();
-    this.setupRendererCallbacks();
-    
-    // Create runtime configuration panel
-    this.runtimeConfigPanel = new RuntimeConfigPanel(this);
+    // Create simple, high-performance renderer
+    console.log("🎨 Initializing SimpleRenderer...");
+    this.renderer = new SimpleRenderer();
+    console.log("✅ SimpleRenderer initialized successfully");
     
     // Wait for renderer to initialize
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -193,35 +178,9 @@ class AntColonyApp {
       });
     }
     
-    // View control checkboxes
-    const showTrails = document.getElementById('showTrails');
-    const showBehaviorStates = document.getElementById('showBehaviorStates');
-    const showEnvironmentDetails = document.getElementById('showEnvironmentDetails');
+    // Simplified interface doesn't have view control checkboxes
+    // Settings are managed internally
     
-    if (showTrails) {
-      showTrails.addEventListener('change', (e) => {
-        this.settings.showTrails = e.target.checked;
-        this.updateRendererSettings();
-      });
-    }
-    
-    if (showBehaviorStates) {
-      showBehaviorStates.addEventListener('change', (e) => {
-        this.settings.showBehaviorStates = e.target.checked;
-        this.updateRendererSettings();
-      });
-    }
-    
-    if (showEnvironmentDetails) {
-      showEnvironmentDetails.addEventListener('change', (e) => {
-        this.settings.showEnvironmentDetails = e.target.checked;
-        this.updateRendererSettings();
-      });
-    }
-    
-    // Layer control checkboxes
-    this.setupLayerControls();
-    this.setupPixelDensityControls();
     
     // Modal close handlers
     const modal = document.getElementById('antModal');
@@ -241,96 +200,6 @@ class AntColonyApp {
     }
   }
 
-  /**
-   * Set up layer control event handlers
-   */
-  setupLayerControls() {
-    if (!this.renderer || !this.renderer.setLayerVisibility) {
-      return; // Not a LayeredRenderer
-    }
-    
-    // Layer visibility toggles
-    const layerTerrain = document.getElementById('layerTerrain');
-    const layerPheromones = document.getElementById('layerPheromones');
-    const layerAnts = document.getElementById('layerAnts');
-    const layerUI = document.getElementById('layerUI');
-    
-    if (layerTerrain) {
-      layerTerrain.addEventListener('change', (e) => {
-        this.renderer.setLayerVisibility('terrain', e.target.checked);
-      });
-    }
-    
-    if (layerPheromones) {
-      layerPheromones.addEventListener('change', (e) => {
-        this.renderer.setLayerVisibility('pheromones', e.target.checked);
-      });
-    }
-    
-    if (layerAnts) {
-      layerAnts.addEventListener('change', (e) => {
-        this.renderer.setLayerVisibility('ants', e.target.checked);
-      });
-    }
-    
-    if (layerUI) {
-      layerUI.addEventListener('change', (e) => {
-        this.renderer.setLayerVisibility('ui_overlay', e.target.checked);
-      });
-    }
-    
-    // Update LOD and zoom display periodically
-    this.setupLODUpdater();
-  }
-  
-  /**
-   * Set up pixel density controls
-   */
-  setupPixelDensityControls() {
-    const pixelDensitySelect = document.getElementById('pixelDensitySelect');
-    
-    if (pixelDensitySelect && this.renderer && this.renderer.setPixelDensity) {
-      pixelDensitySelect.addEventListener('change', (e) => {
-        const density = parseInt(e.target.value, 10);
-        this.renderer.setPixelDensity(density);
-        
-        // Show performance benefit info
-        const level = this.renderer.getPixelDensityLevel();
-        this.addActivityMessage(`🔧 Pixel density set to ${level} (${density}px per cell)`);
-        
-        // Force a full re-render
-        if (this.simulation && this.simulation.state) {
-          this.renderer.render(this.simulation.state);
-        }
-      });
-      
-      console.log('✅ Pixel density controls initialized');
-    }
-  }
-  
-  /**
-   * Set up LOD display updater
-   */
-  setupLODUpdater() {
-    const updateLODDisplay = () => {
-      if (this.renderer && this.renderer.lodSettings) {
-        const currentLOD = document.getElementById('currentLOD');
-        const currentZoom = document.getElementById('currentZoom');
-        
-        if (currentLOD) {
-          const level = this.renderer.lodSettings.currentLevel;
-          currentLOD.textContent = level.charAt(0).toUpperCase() + level.slice(1);
-        }
-        
-        if (currentZoom) {
-          currentZoom.textContent = `${this.renderer.camera.zoom.toFixed(1)}x`;
-        }
-      }
-    };
-    
-    // Update every 500ms
-    setInterval(updateLODDisplay, 500);
-  }
 
   /**
    * Set up keyboard shortcuts
@@ -519,23 +388,17 @@ class AntColonyApp {
       }
     }
     
-    // Restore display settings
+    // Restore display settings (internal only - no UI checkboxes in simplified interface)
     if (preferences.showTrails !== undefined) {
       this.settings.showTrails = preferences.showTrails;
-      const checkbox = document.getElementById('showTrails');
-      if (checkbox) checkbox.checked = preferences.showTrails;
     }
     
     if (preferences.showBehaviorStates !== undefined) {
       this.settings.showBehaviorStates = preferences.showBehaviorStates;
-      const checkbox = document.getElementById('showBehaviorStates');
-      if (checkbox) checkbox.checked = preferences.showBehaviorStates;
     }
     
     if (preferences.showEnvironmentDetails !== undefined) {
       this.settings.showEnvironmentDetails = preferences.showEnvironmentDetails;
-      const checkbox = document.getElementById('showEnvironmentDetails');
-      if (checkbox) checkbox.checked = preferences.showEnvironmentDetails;
     }
     
     // Apply settings to renderer
@@ -543,21 +406,56 @@ class AntColonyApp {
   }
 
   /**
+   * Debug canvas state for troubleshooting
+   */
+  debugCanvasState() {
+    const canvas = document.getElementById('colonyCanvas');
+    const minimap = document.getElementById('minimapCanvas');
+    console.log("🖼️ Canvas debug info:", {
+      mainCanvas: {
+        exists: !!canvas,
+        width: canvas?.width,
+        height: canvas?.height,
+        context: !!canvas?.getContext('2d'),
+        parent: canvas?.parentElement?.tagName
+      },
+      minimap: {
+        exists: !!minimap,
+        width: minimap?.width,
+        height: minimap?.height,
+        context: !!minimap?.getContext('2d')
+      }
+    });
+  }
+
+
+
+  /**
    * Handle simulation state updates
    */
   handleStateUpdate(state, stats) {
-    // Update time scale manager
-    if (this.timeScaleManager && this.isSimulationRunning) {
-      const timeInfo = this.timeScaleManager.update();
+    if (this.renderer && state) {
+      this.renderer.render(state, stats);
       
-      // Pass time info to stats for display
-      if (stats) {
-        stats.timeInfo = timeInfo;
-      }
+      // Update simple UI elements
+      this.updateSimpleUI(state, stats);
+    }
+  }
+  
+  /**
+   * Update simple UI elements
+   */
+  updateSimpleUI(state, stats) {
+    // Update population count
+    const populationElement = document.getElementById('totalPopulation');
+    if (populationElement && state.ants) {
+      populationElement.textContent = state.ants.length;
     }
     
-    if (this.renderer) {
-      this.renderer.render(state, stats);
+    // Update food count
+    const foodElement = document.getElementById('foodCount');
+    if (foodElement && state.environment?.foodSources) {
+      foodElement.textContent = state.environment.foodSources.length;
     }
   }
 

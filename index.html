@@ -39,194 +39,53 @@
             </div>
         </div>
 
-        <!-- Simulation Interface (initially hidden) -->
+        <!-- Simplified Simulation Interface -->
         <div id="simulationInterface" class="simulation-interface hidden">
-            <header class="header">
-                <h1>🐜 ANT COLONY TTRPG - LIVE SIMULATION 🐜</h1>
-                <div class="version-info">Version v0.5 - Vite Edition</div>
-                <button id="backToMenuBtn" class="back-btn">🏠 Main Menu</button>
-            </header>
-
-        <main class="main-content">
-            <!-- Control Panel -->
-            <section class="control-panel">
-                <div class="simulation-controls">
-                    <button id="playPauseBtn" class="control-btn primary">▶️ Start</button>
-                    <button id="resetBtn" class="control-btn">🔄 Reset</button>
-                    <div class="speed-control">
+            <!-- Full-screen canvas -->
+            <canvas id="colonyCanvas"></canvas>
+            
+            <!-- Floating control panel (top-right) -->
+            <div id="controlPanel" class="control-panel">
+                <div class="panel-header">
+                    <h3>🐜 Ant Colony</h3>
+                    <button id="backToMenuBtn" class="back-btn">🏠</button>
+                </div>
+                
+                <div class="panel-content">
+                    <!-- Ant Count -->
+                    <div class="control-group">
+                        <label for="antCountInput">Ants:</label>
+                        <input type="number" id="antCountInput" min="1" max="100" value="5">
+                    </div>
+                    
+                    <!-- Speed Control -->
+                    <div class="control-group">
                         <label for="speedSlider">Speed:</label>
-                        <input type="range" id="speedSlider" min="0.5" max="20" step="0.5" value="1">
-                        <span id="speedValue">1x</span>
-                    </div>
-                </div>
-                <div class="view-controls">
-                    <label title="Toggle visibility of pheromone trails left by ants as they explore and collect food"><input type="checkbox" id="showTrails" checked> Show Trails</label>
-                    <label title="Show ant behavior indicators (foraging, exploring, returning states)"><input type="checkbox" id="showBehaviorStates" checked> Behavior States</label>
-                    <label title="Display environment details like terrain textures and food quality indicators"><input type="checkbox" id="showEnvironmentDetails" checked> Environment</label>
-                </div>
-                <div class="layer-controls">
-                    <h4>Rendering Layers</h4>
-                    <label title="Show/hide the terrain background (rocks, grass, nest)"><input type="checkbox" id="layerTerrain" checked> 🏞️ Terrain</label>
-                    <label title="Show/hide pheromone chemical trails (advanced rendering layer)"><input type="checkbox" id="layerPheromones" checked> 🧪 Pheromones</label>
-                    <label title="Show/hide the ants themselves"><input type="checkbox" id="layerAnts" checked> 🐜 Ants</label>
-                    <label title="Show/hide UI elements like selection indicators and info overlays"><input type="checkbox" id="layerUI" checked> 📱 UI Overlay</label>
-                </div>
-                <div class="lod-controls">
-                    <h4>Level of Detail</h4>
-                    <div class="lod-info">
-                        <span>Current: <span id="currentLOD">High</span></span>
-                        <span>Zoom: <span id="currentZoom">1.0x</span></span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Status Panel -->
-            <section class="status-panel">
-                <div class="status-group">
-                    <h3>Colony Status</h3>
-                    <div class="status-grid">
-                        <div class="status-item">
-                            <span class="status-label">Time:</span>
-                            <span id="elapsedTime">0:00</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Food:</span>
-                            <span id="foodCount">0</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Population:</span>
-                            <span id="totalPopulation">0</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Morale:</span>
-                            <span id="moraleValue">5.0/10</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="status-group">
-                    <h3>Population Breakdown</h3>
-                    <div class="population-breakdown">
-                        <div class="pop-item">Workers: <span id="workerCount">0</span></div>
-                        <div class="pop-item">Scouts: <span id="scoutCount">0</span></div>
-                        <div class="pop-item">Soldiers: <span id="soldierCount">0</span></div>
-                    </div>
-                </div>
-                <div class="status-group">
-                    <h3>Performance</h3>
-                    <div class="performance-stats">
-                        <div class="perf-item">FPS: <span id="fpsCounter">0</span></div>
-                        <div class="perf-item">Render: <span id="renderTime">0ms</span></div>
-                        <div class="perf-item">Visible: <span id="visibleObjects">0/0</span></div>
-                        <div class="perf-item">Memory: <span id="memoryUsage">0MB</span></div>
-                        <div class="perf-item">Updates/sec: <span id="updateRate">0</span></div>
-                        <div class="perf-item">Status: <span id="simStatus">Stopped</span> <span class="perf-status" id="perfStatus">🟢</span></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Environment Info -->
-            <section class="environment-panel">
-                <h3>Environment</h3>
-                <div class="env-grid">
-                    <div class="env-item">
-                        <span class="env-label">Biome:</span>
-                        <span id="biomeType">Forest Floor</span>
-                    </div>
-                    <div class="env-item">
-                        <span class="env-label">Season:</span>
-                        <span id="currentSeason">Spring</span>
-                    </div>
-                    <div class="env-item">
-                        <span class="env-label">Food Sources:</span>
-                        <span id="foodSources">0 total, 0 discovered</span>
-                    </div>
-                    <div class="env-item">
-                        <span class="env-label">Hazards:</span>
-                        <span id="hazardCount">0 active</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Colony Map -->
-            <section class="colony-panel">
-                <h3>Colony View</h3>
-                
-                <!-- Camera Controls -->
-                <div class="camera-controls">
-                    <div class="camera-section">
-                        <div class="pan-controls">
-                            <button class="pan-btn" id="panUp" title="Pan Up">↑</button>
-                            <div class="pan-horizontal">
-                                <button class="pan-btn" id="panLeft" title="Pan Left">←</button>
-                                <button class="pan-btn" id="panRight" title="Pan Right">→</button>
-                            </div>
-                            <button class="pan-btn" id="panDown" title="Pan Down">↓</button>
-                        </div>
+                        <input type="range" id="speedSlider" min="1" max="100" value="50">
+                        <span id="speedValue">60</span>
                     </div>
                     
-                    <div class="camera-section">
-                        <div class="zoom-controls">
-                            <button class="zoom-btn" id="zoomIn" title="Zoom In">+</button>
-                            <span class="zoom-level" id="zoomLevel">1.0x</span>
-                            <button class="zoom-btn" id="zoomOut" title="Zoom Out">−</button>
-                            <button class="reset-btn" id="resetView" title="Reset Camera">⌂</button>
-                        </div>
+                    <!-- Main Controls -->
+                    <div class="button-group">
+                        <button id="playPauseBtn" title="Play/Pause (Space)">❚❚</button>
+                        <button id="resetBtn" title="Reset (R)">↺</button>
+                        <button id="resetViewBtn" title="Reset View">⛶</button>
                     </div>
                     
-                    <div class="camera-section">
-                        <div class="pixel-density-controls">
-                            <label class="pixel-density-label">🔍 Detail:</label>
-                            <select id="pixelDensitySelect" class="pixel-density-select" title="Choose rendering detail level">
-                                <option value="1">Ultra Performance (1px)</option>
-                                <option value="2">High Performance (2px)</option>
-                                <option value="4">Balanced (4px)</option>
-                                <option value="10" selected>High Detail (10px)</option>
-                            </select>
+                    <!-- Status Display -->
+                    <div class="status-group">
+                        <div class="status-item">
+                            <span>Population: <span id="totalPopulation">0</span></span>
                         </div>
-                    </div>
-                    
-                    <div class="camera-section">
-                        <div class="minimap-container">
-                            <canvas id="minimapCanvas" class="minimap" width="80" height="60"></canvas>
-                            <div class="minimap-label">World Map</div>
+                        <div class="status-item">
+                            <span>Food: <span id="foodCount">0</span></span>
+                        </div>
+                        <div class="status-item">
+                            <span>FPS: <span id="fps">0</span></span>
                         </div>
                     </div>
                 </div>
-                
-                <div class="canvas-container">
-                    <canvas id="colonyCanvas" class="colony-canvas"></canvas>
-                </div>
-            </section>
-
-            <!-- Activity Feed -->
-            <section class="activity-panel">
-                <h3>Recent Activity</h3>
-                <div id="activityFeed" class="activity-feed">
-                    <div class="activity-item">🔄 Simulation ready to start...</div>
-                </div>
-            </section>
-
-            <!-- Legend -->
-            <section class="legend-panel">
-                <h3>Legend</h3>
-                <div class="legend-grid">
-                    <div class="legend-item">🐜 <span class="legend-text">W=Worker S=Scout D=Soldier</span></div>
-                    <div class="legend-item">🏠 <span class="legend-text">Nest</span></div>
-                    <div class="legend-item">🫐🪵🌸 <span class="legend-text">Food Sources</span></div>
-                    <div class="legend-item">🪨 <span class="legend-text">Rock</span></div>
-                    <div class="legend-item">🌱 <span class="legend-text">Grass</span></div>
-                    <div class="legend-item">❄️ <span class="legend-text">Winter</span></div>
-                    <div class="legend-item">🦅 <span class="legend-text">Predator Warning</span></div>
-                    <div class="legend-item">●•· <span class="legend-text">Ant Trails</span></div>
-                    <div class="legend-item">◦ <span class="legend-text">Hidden Food</span></div>
-                </div>
-            </section>
-        </main>
-
-        <footer class="footer">
-            <p>🎮 Use SPACE to pause/resume • Click on ants for details • Hover over terrain for info</p>
-            <p>Built with ❤️ for swarm intelligence exploration</p>
-        </footer>
+            </div>
         </div> <!-- End simulation-interface -->
         
         <!-- Load World Modal -->
