@@ -1,5 +1,31 @@
 # Release Notes
 
+## prototype-v0.7 - Underground UI Edition (unreleased)
+
+### Visual redesign
+Implements the "Ant Colony TTRPG — UI Design" canvas (title menu, world creation, in-game HUD).
+- **Design tokens**: dark soil palette, parchment text, amber for food and actions; Pixelify Sans (display), IBM Plex Sans (body), IBM Plex Mono (numbers). Emoji replaced by inline SVG icons.
+- **Role colours**: workers parchment, scouts sky blue, soldiers brick, rival colonies violet; they also differ in lightness for colour-blind players.
+- **Title screen**: pixel-art nest cross-section, resume button naming the last world, recent-world cards with map thumbnails, keyboard shortcuts (Enter / N / L / S).
+- **World creation**: full screen instead of a modal; card choices for size, biome, food, hazards, season and time scale; nest count (1-4); role split with +/- steppers that always total 100%; live preview map and summary.
+- **HUD**: top bar with season, elapsed time, play/pause and speed presets (0.5x-20x); Layers chips (Terrain, Pheromone trails, Behaviour states, Territory); zoom buttons; side panel with population, role split, food, morale and every colony on the map; colony log (the existing activity feed); Spawn food and Reset colony.
+
+### New modules
+- `src/components/pixel-art.js` - shared palette, seeded RNG and pixel illustrations.
+- `src/components/world-form.js` - world-creation behaviour; `rebalanceRoles()` is unit-tested in `world-form.test.js`.
+
+### Behaviour changes
+- New worlds pass `nestCount` and enable the pheromone system, so multiple colonies and trails now run from the UI.
+- Fix: `generateDistributedNestPositions` floored its margin; fractional nest coordinates crashed `moveAnt()` as soon as more than one nest was used. **Core simulation change - needs human review.**
+- Fix: role-split normalisation no longer runs on every input event, which corrupted preset values mid-update.
+- Renderer repaints after a resize, so a paused world no longer goes blank.
+
+### Known issues
+- The FPS counter counts renders, which happen once per simulation tick (every 800 ms at 1x).
+- A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
+- Three simulation tests fail (two always, others intermittently) because world generation uses unseeded `Math.random()`; unrelated to this release.
+- The GameMaster turn screen from the design is not implemented yet.
+
 ## prototype-v0.6 - Configurable Worlds Edition (2025-09-12)
 
 ### 🎯 Major Feature: Complete World Management System

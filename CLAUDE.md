@@ -19,6 +19,7 @@
 - /tests/        → Unit tests and example playthroughs
 
 # Style / conventions
+- UI design tokens live at the top of `src/styles/styles.css`; canvas colours in `src/components/pixel-art.js` (`PALETTE`). Keep the two in sync.
 - All artifacts must include: version, description/purpose, changelog
 - Prefer JSON schemas for data definitions
 - Code style: functions modular, avoid long monoliths
@@ -32,7 +33,7 @@
 - Require human review of any changes to core simulation logic
 
 # Versioning & Release Guidelines
-- Current version: **prototype-v0.6** (Configurable Worlds Edition)
+- Current version: **prototype-v0.7** (Underground UI Edition, in progress on branch `ui-redesign`)
 - Use semantic versioning: `prototype-v0.x` for prototypes, `v1.x.x` for stable releases
 - ALWAYS update RELEASE_NOTES.md before tagging a new version
 - Before committing major changes, review entire project for consistency:
@@ -46,7 +47,7 @@
 
 # Common commands / templates
 - `npm run dev` → Start Vite development server with HMR
-- `npm test` → Run comprehensive test suite (29 tests)
+- `npm test` → Run comprehensive test suite (250+ tests)
 - `npm run build` → Build production version
 - `npm run preview` → Preview production build
 - `/gen-rule <informal description>` → produces JSON rule schema + tests

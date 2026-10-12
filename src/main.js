@@ -7,6 +7,7 @@ import { Utils } from './components/utils.js';
 import { WebSimulation } from './components/web-simulation.js';
 import { SimpleRenderer } from './components/simple-renderer.js';
 import { MenuManager } from './components/menu-manager.js';
+import { PALETTE, STATE_COLORS } from './components/pixel-art.js';
 import './styles/styles.css';
 
 class AntColonyApp {
@@ -23,14 +24,16 @@ class AntColonyApp {
     // UI elements
     this.playPauseBtn = null;
     this.resetBtn = null;
-    this.speedSlider = null;
-    this.speedValue = null;
-    
-    // Settings
+    this.speedGroup = null;
+    this.pausedBadge = null;
+    this.speed = 1.0;
+
+    // Settings (mirrors the HUD's Layers chips)
     this.settings = {
       showTrails: true,
-      showBehaviorStates: true,
+      showBehaviorStates: false,
       showEnvironmentDetails: true,
+      showTerritory: false,
       autoStart: false
     };
     
@@ -152,35 +155,67 @@ class AntColonyApp {
     // Get UI elements
     this.playPauseBtn = document.getElementById('playPauseBtn');
     this.resetBtn = document.getElementById('resetBtn');
-    this.speedSlider = document.getElementById('speedSlider');
-    this.speedValue = document.getElementById('speedValue');
-    
+    this.speedGroup = document.getElementById('speedGroup');
+    this.pausedBadge = document.getElementById('pausedBadge');
+
     // Play/Pause button
     if (this.playPauseBtn) {
       this.playPauseBtn.addEventListener('click', () => {
         this.toggleSimulation();
       });
     }
-    
+
     // Reset button
     if (this.resetBtn) {
       this.resetBtn.addEventListener('click', () => {
         this.resetSimulation();
       });
     }
-    
-    // Speed slider
-    if (this.speedSlider && this.speedValue) {
-      this.speedSlider.addEventListener('input', (e) => {
-        const speed = parseFloat(e.target.value);
-        this.setSimulationSpeed(speed);
-        this.speedValue.textContent = `${speed}x`;
+
+    // Speed: one pressed button in a segmented group
+    if (this.speedGroup) {
+      this.speedGroup.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-speed]');
+        if (!btn) return;
+        this.setSimulationSpeed(parseFloat(btn.dataset.speed));
       });
     }
-    
-    // Simplified interface doesn't have view control checkboxes
-    // Settings are managed internally
-    
+    this.updateSpeedButtons();
+
+    // Layers chips -> renderer display options
+    const layers = {
+      layerTerrain: 'showEnvironmentDetails',
+      layerTrails: 'showTrails',
+      layerStates: 'showBehaviorStates',
+      layerTerritory: 'showTerritory'
+    };
+    Object.entries(layers).forEach(([id, setting]) => {
+      const box = document.getElementById(id);
+      if (!box) return;
+      box.checked = !!this.settings[setting];
+      box.addEventListener('change', () => {
+        this.settings[setting] = box.checked;
+        this.updateRendererSettings();
+        this.renderLegend();
+        this.redraw();
+      });
+    });
+    this.renderLegend();
+
+    // Map view buttons
+    document.getElementById('zoomInBtn')?.addEventListener('click', () => { this.renderer?.zoomBy(1.25); this.redraw(); });
+    document.getElementById('zoomOutBtn')?.addEventListener('click', () => { this.renderer?.zoomBy(0.8); this.redraw(); });
+    document.getElementById('resetViewBtn')?.addEventListener('click', () => { this.renderer?.resetView(); this.redraw(); });
+
+    // Intervene: drop a few new food sources onto the map
+    document.getElementById('spawnFoodBtn')?.addEventListener('click', () => {
+      const env = this.simulation?.state?.environment;
+      if (!env || typeof this.simulation.addFoodSources !== 'function') return;
+      this.simulation.addFoodSources(env, 3);
+      Utils.addActivity('Three new food sources appeared on the map.', 'warning');
+      this.redraw();
+    });
+
     
     // Modal close handlers
     const modal = document.getElementById('antModal');
@@ -268,12 +303,25 @@ class AntColonyApp {
     if (this.isSimulationRunning) {
       this.simulation.pause();
       this.isSimulationRunning = !this.simulation.isPaused;
-      
-      if (this.playPauseBtn) {
-        this.playPauseBtn.innerHTML = this.simulation.isPaused ? '▶️ Resume' : '⏸️ Pause';
-      }
+      this.setPlayButton(!this.simulation.isPaused, this.simulation.isPaused);
     } else {
       this.startSimulation();
+    }
+  }
+
+  /**
+   * Swap the play/pause icon and label, and show the paused badge on the map
+   */
+  setPlayButton(running, paused = false) {
+    if (this.playPauseBtn) {
+      const icon = running ? 'i-pause' : 'i-play';
+      const label = running ? 'Pause simulation' : (paused ? 'Resume simulation' : 'Start simulation');
+      this.playPauseBtn.innerHTML = `<svg aria-hidden="true"><use href="#${icon}"/></svg>`;
+      this.playPauseBtn.setAttribute('aria-label', label);
+      this.playPauseBtn.title = `${label} (Space)`;
+    }
+    if (this.pausedBadge) {
+      this.pausedBadge.classList.toggle('hidden', !paused);
     }
   }
 
@@ -286,12 +334,9 @@ class AntColonyApp {
     this.simulation.start();
     this.isSimulationRunning = true;
     
-    if (this.playPauseBtn) {
-      this.playPauseBtn.innerHTML = '⏸️ Pause';
-      this.playPauseBtn.classList.remove('primary');
-    }
-    
-    Utils.addActivity('▶️ Simulation started', 'info');
+    this.setPlayButton(true);
+
+    Utils.addActivity('Simulation started.', 'info');
   }
 
   /**
@@ -304,11 +349,8 @@ class AntColonyApp {
     this.simulation.stop();
     this.isSimulationRunning = false;
     
-    if (this.playPauseBtn) {
-      this.playPauseBtn.innerHTML = '▶️ Start';
-      this.playPauseBtn.classList.add('primary');
-    }
-    
+    this.setPlayButton(false);
+
     // Reset time scale manager
     if (this.timeScaleManager) {
       this.timeScaleManager.reset();
@@ -324,26 +366,64 @@ class AntColonyApp {
    * Set simulation speed
    */
   setSimulationSpeed(speed) {
+    this.speed = Utils.clamp(speed, 0.5, 20.0);
     if (this.simulation) {
-      this.simulation.setSpeed(speed);
+      this.simulation.setSpeed(this.speed);
     }
-    
+    this.updateSpeedButtons();
+
     // Save speed preference
     this.saveUserPreferences();
   }
 
   /**
-   * Adjust simulation speed by delta
+   * Step to the next slower/faster speed preset (- and = keys)
    */
   adjustSpeed(delta) {
-    if (this.speedSlider && this.speedValue) {
-      const currentSpeed = parseFloat(this.speedSlider.value);
-      const newSpeed = Utils.clamp(currentSpeed + delta, 0.5, 20.0); // Updated max to 20x
-      
-      this.speedSlider.value = newSpeed;
-      this.speedValue.textContent = `${newSpeed}x`;
-      this.setSimulationSpeed(newSpeed);
+    const steps = [0.5, 1, 2, 5, 10, 20];
+    const current = steps.findIndex((s) => s >= (this.speed || 1));
+    const index = Utils.clamp((current === -1 ? steps.length - 1 : current) + Math.sign(delta), 0, steps.length - 1);
+    this.setSimulationSpeed(steps[index]);
+  }
+
+  /**
+   * Mark the active speed in the segmented control
+   */
+  updateSpeedButtons() {
+    this.speedGroup?.querySelectorAll('button[data-speed]').forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(parseFloat(btn.dataset.speed) === (this.speed || 1)));
+    });
+  }
+
+  /**
+   * Force a full redraw of the current state (after layer, zoom or map changes)
+   */
+  redraw() {
+    if (this.renderer && this.simulation?.state) {
+      this.renderer.needsFullRedraw = true;
+      this.renderer.render(this.simulation.state, this.simulation.getSimulationStats());
     }
+  }
+
+  /**
+   * Map legend: role colours, or behaviour-state colours when that layer is on
+   */
+  renderLegend() {
+    const legend = document.getElementById('mapLegend');
+    if (!legend) return;
+    const items = this.settings.showBehaviorStates
+      ? [['Foraging', STATE_COLORS.foraging], ['Exploring', STATE_COLORS.exploring], ['Returning', STATE_COLORS.returning], ['Resting', STATE_COLORS.resting]]
+      : [['Worker', PALETTE.worker], ['Scout', PALETTE.scout], ['Soldier', PALETTE.soldier]];
+    items.push(['Rival ant', PALETTE.rival], ['Food', PALETTE.amber]);
+    legend.replaceChildren(...items.map(([name, color]) => {
+      const li = document.createElement('li');
+      li.className = 'legend-item';
+      const sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.setProperty('--c', color);
+      li.append(sw, name);
+      return li;
+    }));
   }
 
   /**
@@ -363,10 +443,11 @@ class AntColonyApp {
    */
   saveUserPreferences() {
     const preferences = {
-      speed: this.speedSlider ? parseFloat(this.speedSlider.value) : 1.0,
+      speed: this.speed || 1.0,
       showTrails: this.settings.showTrails,
       showBehaviorStates: this.settings.showBehaviorStates,
       showEnvironmentDetails: this.settings.showEnvironmentDetails,
+      showTerritory: this.settings.showTerritory,
       lastSaved: Date.now()
     };
     
@@ -380,12 +461,16 @@ class AntColonyApp {
     const preferences = Utils.storage.get('userPreferences', {});
     
     // Restore speed setting
-    if (preferences.speed && this.speedSlider && this.speedValue) {
-      this.speedSlider.value = preferences.speed;
-      this.speedValue.textContent = `${preferences.speed}x`;
+    if (preferences.speed) {
+      this.speed = preferences.speed;
       if (this.simulation) {
         this.simulation.setSpeed(preferences.speed);
       }
+      this.updateSpeedButtons();
+    }
+
+    if (preferences.showTerritory !== undefined) {
+      this.settings.showTerritory = preferences.showTerritory;
     }
     
     // Restore display settings (internal only - no UI checkboxes in simplified interface)
@@ -446,17 +531,75 @@ class AntColonyApp {
    * Update simple UI elements
    */
   updateSimpleUI(state, stats) {
-    // Update population count
-    const populationElement = document.getElementById('totalPopulation');
-    if (populationElement && state.ants) {
-      populationElement.textContent = state.ants.length;
+    const set = (id, text) => {
+      const el = document.getElementById(id);
+      if (el && el.textContent !== String(text)) el.textContent = text;
+    };
+    const ants = state.ants || [];
+    const yours = ants.filter((a) => !a.colonyId);
+
+    // Your colony: total, cap and the role split
+    set('totalPopulation', yours.length);
+    set('populationCap', state.maxPopulation ? `ants of ${state.maxPopulation}` : 'ants');
+    const counts = { worker: 0, scout: 0, soldier: 0 };
+    yours.forEach((a) => { if (counts[a.role] !== undefined) counts[a.role]++; });
+    set('workerCount', counts.worker);
+    set('scoutCount', counts.scout);
+    set('soldierCount', counts.soldier);
+    const total = Math.max(1, yours.length);
+    [['hudWorkerBar', counts.worker], ['hudScoutBar', counts.scout], ['hudSoldierBar', counts.soldier]].forEach(([id, n]) => {
+      const bar = document.getElementById(id);
+      if (bar) bar.style.width = `${(n / total) * 100}%`;
+    });
+
+    // Stores, food on the map, morale, season and clock
+    set('foodStores', Math.round(state.food ?? 0));
+    set('foodCount', state.environment?.foodSources?.length ?? 0);
+    if (typeof state.morale === 'number') {
+      set('moraleValue', state.morale >= 7 ? 'High' : state.morale >= 4 ? 'Steady' : 'Low');
     }
-    
-    // Update food count
-    const foodElement = document.getElementById('foodCount');
-    if (foodElement && state.environment?.foodSources) {
-      foodElement.textContent = state.environment.foodSources.length;
-    }
+    if (state.narrative_context?.current_season) set('currentSeason', state.narrative_context.current_season);
+    if (stats?.elapsedTime !== undefined) set('hudClock', Utils.formatTime(Math.floor(stats.elapsedTime)));
+
+    this.updateColoniesList(state);
+  }
+
+  /**
+   * One row per nest on the map; rebuilt only when the numbers change
+   */
+  updateColoniesList(state) {
+    const list = document.getElementById('coloniesList');
+    if (!list || !state.nests) return;
+    const rows = state.nests.map((nest, i) => ({
+      name: i === 0 ? (this.menuManager?.getCurrentWorldConfig()?.worldName || 'Your colony') : `Rival colony ${i}`,
+      tag: i === 0 ? 'you' : 'rival',
+      color: i === 0 ? PALETTE.worker : PALETTE.rival,
+      count: (state.ants || []).filter((a) => (a.colonyId || 0) === i).length
+    }));
+    const signature = rows.map((r) => `${r.name}:${r.count}`).join('|');
+    if (signature === this.coloniesSignature) return;
+    this.coloniesSignature = signature;
+
+    list.replaceChildren(...rows.map((r) => {
+      const li = document.createElement('li');
+      li.className = 'colony-row';
+      const sw = document.createElement('span');
+      sw.className = 'swatch ring';
+      sw.style.setProperty('--c', r.color);
+      sw.setAttribute('aria-hidden', 'true');
+      const name = document.createElement('span');
+      name.className = 'grow';
+      name.textContent = r.name;
+      const tag = document.createElement('span');
+      tag.className = 'muted';
+      tag.textContent = ` · ${r.tag}`;
+      name.append(tag);
+      const count = document.createElement('span');
+      count.className = 'mono';
+      count.textContent = r.count;
+      li.append(sw, name, count);
+      return li;
+    }));
   }
 
   /**

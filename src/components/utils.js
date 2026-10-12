@@ -121,9 +121,11 @@ export class Utils {
   static addActivity(message, type = 'info') {
     const feed = document.getElementById('activityFeed');
     if (feed) {
-      const item = Utils.createElement('div', {
+      // The colony log is an <ol>; leading emoji are dropped to match the UI's icon style
+      const text = String(message).replace(/^[\p{Extended_Pictographic}️‍\s]+/u, '');
+      const item = Utils.createElement(feed.tagName === 'OL' || feed.tagName === 'UL' ? 'li' : 'div', {
         className: `activity-item activity-${type}`,
-        textContent: message
+        textContent: text
       });
       
       feed.insertBefore(item, feed.firstChild);

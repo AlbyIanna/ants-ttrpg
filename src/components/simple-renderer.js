@@ -4,7 +4,13 @@
  * 
  * Based on the turmites-main reference implementation
  * Focuses on performance and simplicity over complex features
+ * Changelog:
+ *   v0.7.1 - Underground UI palette, ants coloured by role / behaviour state,
+ *            rival colonies in violet, pheromone-trail and territory overlays,
+ *            nest rings, Terrain layer toggle, zoomBy() and auto-resize.
  */
+
+import { PALETTE, STATE_COLORS } from './pixel-art.js';
 
 export class SimpleRenderer {
   constructor() {
@@ -29,17 +35,30 @@ export class SimpleRenderer {
     this.cellsToUpdate = new Set(); // Track cells that need redrawing
     this.needsFullRedraw = true;
     
-    // Color palette - simple and clear
+    // Color palette - shared with the UI (see pixel-art.js)
     this.colors = {
-      background: '#000000',    // Black background
-      empty: '#111111',         // Dark gray for empty space
-      nest: '#FFD700',          // Gold for nest
-      ant: '#FF0000',           // Red for ants
-      food: '#00FF00',          // Green for food
-      trail: '#444444',         // Gray for trails
-      rock: '#666666',          // Gray for obstacles
-      grass: '#004400'          // Dark green for grass
+      background: PALETTE.ground,
+      soil: PALETTE.soil,
+      nest: PALETTE.nest,
+      food: PALETTE.amber,
+      trail: PALETTE.amber,
+      rock: PALETTE.rock[0],
+      grass: PALETTE.grass[1],
+      water: PALETTE.water[0],
+      mountain: '#5A4532',
+      tree: PALETTE.grass[0],
+      desertRock: PALETTE.rock[1],
+      roles: { worker: PALETTE.worker, scout: PALETTE.scout, soldier: PALETTE.soldier },
+      rival: PALETTE.rival,
+      homeRing: PALETTE.worker
     };
+
+    // Layer toggles (driven by the HUD's Layers chips)
+    this.showTrails = true;
+    this.showBehaviorStates = false;
+    this.showEnvironmentDetails = true;
+    this.showTerritory = false;
+    this.mixCache = new Map();
     
     // Performance tracking
     this.fps = 0;
@@ -79,7 +98,15 @@ export class SimpleRenderer {
     
     // Set up mouse controls for pan/zoom
     this.setupControls();
-    
+
+    // Keep the canvas matched to its (flexible) container
+    if (typeof ResizeObserver !== 'undefined' && this.canvas.parentElement) {
+      this.resizeObserver = new ResizeObserver(() => this.handleResize());
+      this.resizeObserver.observe(this.canvas.parentElement);
+    } else if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => this.handleResize());
+    }
+
     console.log('✅ SimpleRenderer initialized successfully');
   }
   
@@ -199,7 +226,8 @@ export class SimpleRenderer {
    */
   render(state, stats = {}) {
     if (!this.ctx || !state) return;
-    
+    this.lastState = state;
+
     const startTime = performance.now();
     
     // Update world dimensions if changed
@@ -238,9 +266,12 @@ export class SimpleRenderer {
     // Calculate visible bounds
     const bounds = this.getVisibleBounds();
     
-    // Draw terrain/background
+    // Draw terrain/background (with trail and territory overlays)
     this.drawTerrain(state, bounds);
-    
+
+    // Nest rings: yours in parchment, rivals in violet
+    this.drawNests(state, bounds);
+
     // Draw food sources
     this.drawFood(state, bounds);
     
@@ -279,29 +310,95 @@ export class SimpleRenderer {
     if (!state.environment?.terrain) return;
     
     const terrain = state.environment.terrain;
-    
+    const pheromones = this.showTrails ? state.environment.pheromoneMap : null;
+    const territory = this.showTerritory ? state.environment.territoryMap : null;
+
     for (let y = bounds.startY; y < bounds.endY; y++) {
       for (let x = bounds.startX; x < bounds.endX; x++) {
         if (y >= terrain.length || x >= terrain[y].length) continue;
-        
+
         const cell = terrain[y][x];
-        let color = this.colors.empty;
-        
-        // Map terrain types to colors
-        switch (cell) {
-          case '🏠': color = this.colors.nest; break;
-          case '🪨': color = this.colors.rock; break;
-          case '🌱': color = this.colors.grass; break;
-          case '🌊': color = '#0066CC'; break; // Blue for rivers
-          case '⛰️': color = '#8B4513'; break; // Brown for mountains  
-          case '🌲': color = '#228B22'; break; // Forest green for trees
-          case '🏔': color = '#696969'; break; // Gray for desert rocks
-          default: color = this.colors.empty; break;
+        // Stable per-cell soil grain so the ground doesn't flicker
+        const soil = this.colors.soil[(((x * 73856093) ^ (y * 19349663)) >>> 0) % this.colors.soil.length];
+        let color = soil;
+
+        // Map terrain types to colors (nests always show; the rest is the Terrain layer)
+        if (cell === '🏠') {
+          color = this.colors.nest;
+        } else if (this.showEnvironmentDetails) {
+          switch (cell) {
+            case '🪨': color = this.colors.rock; break;
+            case '🌱': color = this.colors.grass; break;
+            case '🌊': color = this.colors.water; break;
+            case '⛰️': color = this.colors.mountain; break;
+            case '🌲': color = this.colors.tree; break;
+            case '🏔': color = this.colors.desertRock; break;
+            default: break;
+          }
         }
-        
+
+        const strength = pheromones?.[y]?.[x] || 0;
+        if (strength > 0 && cell !== '🏠') {
+          color = this.mix(color, this.colors.trail, Math.min(1, strength / 2) * 0.65);
+        }
+
+        const owner = territory?.[y]?.[x];
+        if (owner !== null && owner !== undefined && owner >= 0) {
+          color = owner === 0
+            ? this.mix(color, this.colors.homeRing, 0.12)
+            : this.mix(color, this.colors.rival, 0.22);
+        }
+
         this.drawCell(x, y, color);
       }
     }
+  }
+
+  /**
+   * Draw a one-cell ring around each nest
+   */
+  drawNests(state, bounds) {
+    if (!state.nests) return;
+    state.nests.forEach((nest, i) => {
+      const { x, y } = nest.position || {};
+      if (x === undefined) return;
+      const ring = i === 0 ? this.colors.homeRing : this.colors.rival;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const cx = x + dx, cy = y + dy;
+          if (cx >= bounds.startX && cx < bounds.endX && cy >= bounds.startY && cy < bounds.endY) {
+            this.drawCell(cx, cy, ring);
+          }
+        }
+      }
+      this.drawCell(x, y, this.colors.nest);
+    });
+  }
+
+  /**
+   * Blend two #rrggbb colours (cached: the same few pairs repeat every frame)
+   */
+  mix(a, b, t) {
+    const step = Math.round(t * 20) / 20;
+    const key = `${a}${b}${step}`;
+    let out = this.mixCache.get(key);
+    if (!out) {
+      const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+      const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+      out = '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * step).toString(16).padStart(2, '0')).join('');
+      this.mixCache.set(key, out);
+    }
+    return out;
+  }
+
+  /**
+   * Colour for one ant: rivals in violet, yours by role or by behaviour state
+   */
+  antColor(ant) {
+    if (ant.colonyId && ant.colonyId !== 0) return this.colors.rival;
+    if (this.showBehaviorStates) return STATE_COLORS[ant.state] || this.colors.roles.worker;
+    return this.colors.roles[ant.role] || this.colors.roles.worker;
   }
   
   /**
@@ -327,7 +424,7 @@ export class SimpleRenderer {
     state.ants.forEach(ant => {
       if (ant.position.x >= bounds.startX && ant.position.x < bounds.endX &&
           ant.position.y >= bounds.startY && ant.position.y < bounds.endY) {
-        this.drawCell(ant.position.x, ant.position.y, this.colors.ant);
+        this.drawCell(ant.position.x, ant.position.y, this.antColor(ant));
       }
     });
   }
@@ -401,6 +498,8 @@ export class SimpleRenderer {
   handleResize() {
     this.setupCanvas();
     this.needsFullRedraw = true;
+    // Resizing a canvas clears it; repaint now so a paused world doesn't go blank
+    if (this.lastState) this.render(this.lastState);
   }
   
   /**
@@ -416,6 +515,21 @@ export class SimpleRenderer {
     if (options.showTrails !== undefined) this.showTrails = options.showTrails;
     if (options.showBehaviorStates !== undefined) this.showBehaviorStates = options.showBehaviorStates;
     if (options.showEnvironmentDetails !== undefined) this.showEnvironmentDetails = options.showEnvironmentDetails;
+    if (options.showTerritory !== undefined) this.showTerritory = options.showTerritory;
+    this.needsFullRedraw = true;
+  }
+
+  /**
+   * Zoom around the centre of the view (HUD zoom buttons)
+   */
+  zoomBy(factor) {
+    const newScale = Math.max(0.5, Math.min(50, this.scale * factor));
+    const cx = this.canvasWidth / 2;
+    const cy = this.canvasHeight / 2;
+    this.offsetX = cx - (cx - this.offsetX) * (newScale / this.scale);
+    this.offsetY = cy - (cy - this.offsetY) * (newScale / this.scale);
+    this.scale = newScale;
+    this.needsFullRedraw = true;
   }
   
   /**

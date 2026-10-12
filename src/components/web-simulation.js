@@ -1646,7 +1646,9 @@ export class WebSimulation {
    */
   generateDistributedNestPositions(width, height, nestCount, minDistance) {
     const positions = [];
-    const margin = Math.min(width, height) * 0.1; // 10% margin
+    // 10% margin, floored: a fractional margin made randomInt() return
+    // fractional nest coordinates (e.g. 74.5), which crashed moveAnt()
+    const margin = Math.floor(Math.min(width, height) * 0.1);
     const maxAttempts = 100;
     
     for (let i = 0; i < nestCount; i++) {

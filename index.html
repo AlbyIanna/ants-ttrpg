@@ -3,256 +3,459 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐜 Ant Colony TTRPG - Live Simulation</title>
+    <title>Ant Colony TTRPG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 </head>
 <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <symbol id="i-ant" viewBox="0 0 12 7"><g fill="currentColor" shape-rendering="crispEdges"><rect x="11" y="0" width="1" height="1"/><rect x="10" y="1" width="1" height="1"/><rect x="1" y="2" width="2" height="1"/><rect x="8" y="2" width="2" height="1"/><rect x="0" y="3" width="10" height="1"/><rect x="1" y="4" width="2" height="1"/><rect x="5" y="4" width="2" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/></g></symbol>
+        <symbol id="i-play" viewBox="0 0 20 20"><path fill="currentColor" d="M6.5 4.2v11.6L16 10z"/></symbol>
+        <symbol id="i-pause" viewBox="0 0 20 20"><g fill="currentColor"><rect x="5" y="4" width="3.5" height="12" rx="0.5"/><rect x="11.5" y="4" width="3.5" height="12" rx="0.5"/></g></symbol>
+        <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+        <symbol id="i-minus" viewBox="0 0 20 20"><path d="M4 10h12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+        <symbol id="i-folder" viewBox="0 0 20 20"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h3.2l1.6 2h6.2A1.5 1.5 0 0 1 17 8.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3.5 6h8M15.5 6h1M3.5 14h2M9.5 14h7"/><circle cx="13.5" cy="6" r="1.75"/><circle cx="7.5" cy="14" r="1.75"/></g></symbol>
+        <symbol id="i-back" viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="i-arrow" viewBox="0 0 20 20"><path d="M4 10h12M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="i-home" viewBox="0 0 20 20"><path d="M3.5 9.5 10 4l6.5 5.5V16a1 1 0 0 1-1 1H12v-4.5H8V17H4.5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
+        <symbol id="i-target" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 2.5v3M10 14.5v3M2.5 10h3M14.5 10h3"/></g></symbol>
+        <symbol id="i-seeds" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="7" cy="12" r="3"/><circle cx="13" cy="8" r="3"/></g></symbol>
+        <symbol id="i-reset" viewBox="0 0 20 20"><path d="M4.5 10a5.5 5.5 0 1 0 1.6-3.9M4.5 3.5v3h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="i-close" viewBox="0 0 20 20"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    </svg>
+
     <div class="app-container">
-        <!-- Main Menu Overlay -->
-        <div id="mainMenu" class="menu-overlay">
-            <div class="menu-content">
-                <header class="menu-header">
-                    <h1>🐜 ANT COLONY SIMULATOR 🐜</h1>
-                    <div class="version-info">Version v0.5 - Configurable Worlds Edition</div>
-                </header>
-                
-                <div class="menu-options">
-                    <button id="resumeWorldBtn" class="menu-btn primary" disabled>
-                        🔄 Resume Last World
-                    </button>
-                    <button id="createWorldBtn" class="menu-btn">
-                        ✨ Create New World
-                    </button>
-                    <button id="loadWorldBtn" class="menu-btn">
-                        📁 Load Saved World
-                    </button>
-                    <button id="settingsBtn" class="menu-btn">
-                        ⚙️ Global Settings
-                    </button>
+
+        <!-- ============ Title / main menu ============ -->
+        <div id="mainMenu" class="screen menu-screen">
+            <header class="topbar">
+                <div class="brand">
+                    <svg class="brand-ant" aria-hidden="true"><use href="#i-ant"/></svg>
+                    <span class="brand-name">Ant Colony TTRPG</span>
                 </div>
-                
-                <div class="saved-worlds-preview" id="savedWorldsPreview">
-                    <h3>Recent Worlds</h3>
-                    <div class="worlds-list" id="worldsList">
-                        <div class="no-worlds">No saved worlds yet. Create your first ant colony!</div>
+                <span class="mono muted small">prototype-v0.7 · Underground UI</span>
+            </header>
+
+            <main class="menu-body">
+                <section class="menu-intro">
+                    <div class="stack-16">
+                        <p class="eyebrow">Swarm simulation · Tabletop RPG</p>
+                        <h1 class="title-xl">Ant<br>Colony</h1>
+                        <p class="lede">Found a colony, shape its world, then step back and watch workers, scouts and soldiers sort it out among themselves.</p>
                     </div>
-                </div>
-            </div>
+
+                    <nav class="menu-options" aria-label="Main menu">
+                        <button id="resumeWorldBtn" type="button" class="menu-btn primary" disabled>
+                            <svg aria-hidden="true"><use href="#i-play"/></svg>
+                            <span class="menu-btn-text">
+                                <span class="menu-btn-title">Resume last world</span>
+                                <span class="menu-btn-sub">No saved world yet</span>
+                            </span>
+                            <kbd>Enter</kbd>
+                        </button>
+                        <button id="createWorldBtn" type="button" class="menu-btn">
+                            <svg aria-hidden="true"><use href="#i-plus"/></svg>
+                            <span class="menu-btn-text">Create new world</span>
+                            <kbd>N</kbd>
+                        </button>
+                        <button id="loadWorldBtn" type="button" class="menu-btn">
+                            <svg aria-hidden="true"><use href="#i-folder"/></svg>
+                            <span class="menu-btn-text">Load saved world</span>
+                            <kbd>L</kbd>
+                        </button>
+                        <button id="settingsBtn" type="button" class="menu-btn">
+                            <svg aria-hidden="true"><use href="#i-sliders"/></svg>
+                            <span class="menu-btn-text">Settings</span>
+                            <kbd>S</kbd>
+                        </button>
+                    </nav>
+                </section>
+
+                <section class="menu-art" aria-label="Nest cross-section and recent worlds">
+                    <figure class="art-frame">
+                        <canvas id="nestCrossSection" class="pixel-canvas" aria-hidden="true"></canvas>
+                        <figcaption class="art-caption">
+                            <span>Cross-section of a forest-floor nest</span>
+                            <span class="legend">
+                                <span class="legend-item"><span class="swatch" style="--c: var(--worker)"></span>Worker</span>
+                                <span class="legend-item"><span class="swatch" style="--c: var(--scout)"></span>Scout</span>
+                                <span class="legend-item"><span class="swatch" style="--c: var(--soldier)"></span>Soldier</span>
+                                <span class="legend-item"><span class="swatch" style="--c: var(--amber)"></span>Food</span>
+                                <span class="legend-item"><span class="swatch" style="--c: var(--brood)"></span>Brood</span>
+                            </span>
+                        </figcaption>
+                    </figure>
+
+                    <div class="saved-worlds-preview" id="savedWorldsPreview">
+                        <h2 class="title-s">Recent worlds</h2>
+                        <ul class="worlds-list" id="worldsList">
+                            <li class="no-worlds">No saved worlds yet. Create your first ant colony!</li>
+                        </ul>
+                    </div>
+                </section>
+            </main>
         </div>
 
-        <!-- Simplified Simulation Interface -->
-        <div id="simulationInterface" class="simulation-interface hidden">
-            <!-- Full-screen canvas -->
-            <canvas id="colonyCanvas"></canvas>
-            
-            <!-- Floating control panel (top-right) -->
-            <div id="controlPanel" class="control-panel">
-                <div class="panel-header">
-                    <h3>🐜 Ant Colony</h3>
-                    <button id="backToMenuBtn" class="back-btn">🏠</button>
-                </div>
-                
-                <div class="panel-content">
-                    <!-- Ant Count -->
-                    <div class="control-group">
-                        <label for="antCountInput">Ants:</label>
-                        <input type="number" id="antCountInput" min="1" max="100" value="5">
-                    </div>
-                    
-                    <!-- Speed Control -->
-                    <div class="control-group">
-                        <label for="speedSlider">Speed:</label>
-                        <input type="range" id="speedSlider" min="1" max="100" value="50">
-                        <span id="speedValue">60</span>
-                    </div>
-                    
-                    <!-- Main Controls -->
-                    <div class="button-group">
-                        <button id="playPauseBtn" title="Play/Pause (Space)">❚❚</button>
-                        <button id="resetBtn" title="Reset (R)">↺</button>
-                        <button id="resetViewBtn" title="Reset View">⛶</button>
-                    </div>
-                    
-                    <!-- Status Display -->
-                    <div class="status-group">
-                        <div class="status-item">
-                            <span>Population: <span id="totalPopulation">0</span></span>
-                        </div>
-                        <div class="status-item">
-                            <span>Food: <span id="foodCount">0</span></span>
-                        </div>
-                        <div class="status-item">
-                            <span>FPS: <span id="fps">0</span></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- End simulation-interface -->
-        
-        <!-- Load World Modal -->
-        <div id="loadWorldModal" class="modal hidden">
-            <div class="modal-content load-world-modal">
-                <span class="modal-close" id="loadWorldClose">&times;</span>
-                <h2>📁 Load Saved World</h2>
-                
-                <div class="load-world-content">
-                    <div class="saved-worlds-grid" id="savedWorldsGrid">
-                        <!-- Saved worlds will be populated by JavaScript -->
-                    </div>
-                    
-                    <div class="load-actions">
-                        <button type="button" id="cancelLoadBtn" class="config-btn secondary">Cancel</button>
-                        <button type="button" id="loadSelectedBtn" class="config-btn primary" disabled>🚀 Load Selected</button>
-                        <button type="button" id="deleteWorldBtn" class="config-btn danger" disabled>🗑️ Delete Selected</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- ============ World creation ============ -->
+        <div id="worldConfigModal" class="screen world-screen hidden">
+            <header class="topbar">
+                <button type="button" id="worldConfigClose" class="link-btn">
+                    <svg aria-hidden="true"><use href="#i-back"/></svg>
+                    Main menu
+                </button>
+                <span class="mono muted small">New world</span>
+            </header>
 
-        <!-- World Configuration Modal -->
-        <div id="worldConfigModal" class="modal hidden">
-            <div class="modal-content world-config-modal">
-                <span class="modal-close" id="worldConfigClose">&times;</span>
-                <h2>✨ Create New World</h2>
-                
+            <div class="world-body">
+                <div class="stack-10 world-head">
+                    <h1 class="title-l">Found a new colony</h1>
+                    <p class="lede">Pick the ground, the starting brood and how fast time runs.</p>
+                </div>
+
                 <form id="worldConfigForm" class="world-config-form">
-                    <div class="config-section">
-                        <h3>🌍 World Settings</h3>
-                        <div class="config-row">
-                            <label for="worldName">World Name:</label>
-                            <input type="text" id="worldName" placeholder="My Ant Colony" maxlength="30">
+                    <div class="world-columns">
+                        <div class="world-main">
+
+                            <fieldset class="plain">
+                                <legend class="eyebrow">Start from a preset</legend>
+                                <div class="card-grid presets">
+                                    <button type="button" id="presetQuickStart" class="choice-card" data-preset aria-pressed="false">
+                                        <span class="choice-title pixel">Quick start</span>
+                                        <span class="choice-sub">Medium forest, no threats, 1 min / s</span>
+                                    </button>
+                                    <button type="button" id="presetSurvival" class="choice-card" data-preset aria-pressed="false">
+                                        <span class="choice-title pixel">Survival</span>
+                                        <span class="choice-sub">Small desert, scarce food, dangerous</span>
+                                    </button>
+                                    <button type="button" id="presetEvolution" class="choice-card" data-preset aria-pressed="false">
+                                        <span class="choice-title pixel">Evolution lab</span>
+                                        <span class="choice-sub">Large mixed world, abundant food, 1 h / s</span>
+                                    </button>
+                                </div>
+                            </fieldset>
+
+                            <section class="form-section">
+                                <h2 class="section-title"><span class="section-num">01</span>World</h2>
+
+                                <div class="field narrow">
+                                    <label for="worldName">Colony name</label>
+                                    <input type="text" id="worldName" class="text-input" placeholder="Name your colony" maxlength="30" autocomplete="off">
+                                </div>
+
+                                <fieldset class="plain">
+                                    <legend>World size</legend>
+                                    <input type="text" id="worldSize" value="medium" hidden>
+                                    <div class="card-grid" data-choice-for="worldSize">
+                                        <button type="button" class="choice-card" data-value="small"><span class="size-glyph" style="--w: 21px; --h: 16px" aria-hidden="true"></span><span class="choice-title">Small</span><span class="choice-sub mono">100 × 75 · Fast</span></button>
+                                        <button type="button" class="choice-card" data-value="medium"><span class="size-glyph" style="--w: 30px; --h: 22px" aria-hidden="true"></span><span class="choice-title">Medium</span><span class="choice-sub mono">200 × 150 · Balanced</span></button>
+                                        <button type="button" class="choice-card" data-value="large"><span class="size-glyph" style="--w: 38px; --h: 25px" aria-hidden="true"></span><span class="choice-title">Large</span><span class="choice-sub mono">300 × 200 · Detailed</span></button>
+                                        <button type="button" class="choice-card" data-value="huge"><span class="size-glyph" style="--w: 56px; --h: 34px" aria-hidden="true"></span><span class="choice-title">Huge</span><span class="choice-sub mono">500 × 300 · Epic</span></button>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="plain">
+                                    <legend>Biome</legend>
+                                    <input type="text" id="biomeType" value="forest" hidden>
+                                    <div class="card-grid" data-choice-for="biomeType">
+                                        <button type="button" class="choice-card" data-value="forest"><canvas class="pixel-canvas swatch-canvas" data-biome-swatch="forest" aria-hidden="true"></canvas><span class="choice-title">Forest floor</span><span class="choice-sub">Leaf litter, rocks and fallen logs</span></button>
+                                        <button type="button" class="choice-card" data-value="desert"><canvas class="pixel-canvas swatch-canvas" data-biome-swatch="desert" aria-hidden="true"></canvas><span class="choice-title">Desert oasis</span><span class="choice-sub">Dunes around a single water source</span></button>
+                                        <button type="button" class="choice-card" data-value="grassland"><canvas class="pixel-canvas swatch-canvas" data-biome-swatch="grassland" aria-hidden="true"></canvas><span class="choice-title">Grassland</span><span class="choice-sub">Open ground under dense grass</span></button>
+                                        <button type="button" class="choice-card" data-value="wetland"><canvas class="pixel-canvas swatch-canvas" data-biome-swatch="wetland" aria-hidden="true"></canvas><span class="choice-title">Wetland</span><span class="choice-sub">Water channels and reed beds</span></button>
+                                        <button type="button" class="choice-card" data-value="mixed"><canvas class="pixel-canvas swatch-canvas" data-biome-swatch="mixed" aria-hidden="true"></canvas><span class="choice-title">Mixed terrain</span><span class="choice-sub">A patchwork of all four</span></button>
+                                    </div>
+                                </fieldset>
+                            </section>
+
+                            <section class="form-section">
+                                <h2 class="section-title"><span class="section-num">02</span>Colony</h2>
+
+                                <div class="two-up">
+                                    <div class="field">
+                                        <div class="field-row"><label for="startingPopulation">Starting population</label><span id="populationValue" class="mono accent">12 ants</span></div>
+                                        <input type="range" id="startingPopulation" min="5" max="50" value="12">
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-row"><label for="maxPopulation">Population cap</label><span id="maxPopulationValue" class="mono accent">50 ants</span></div>
+                                        <input type="range" id="maxPopulation" min="20" max="200" step="5" value="50">
+                                    </div>
+                                </div>
+
+                                <fieldset class="plain">
+                                    <legend>Nests on the map</legend>
+                                    <input type="range" id="nestCount" min="1" max="4" value="1" hidden>
+                                    <div class="inline-row">
+                                        <div class="segmented" data-choice-for="nestCount">
+                                            <button type="button" class="choice-card square mono" data-value="1">1</button>
+                                            <button type="button" class="choice-card square mono" data-value="2">2</button>
+                                            <button type="button" class="choice-card square mono" data-value="3">3</button>
+                                            <button type="button" class="choice-card square mono" data-value="4">4</button>
+                                        </div>
+                                        <span id="nestHelp" class="muted small-14">One colony, no rivals.</span>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="plain role-distribution">
+                                    <legend>Role split <span class="muted normal">· always adds up to 100%</span></legend>
+                                    <input type="range" id="workerRatio" min="30" max="80" value="60" hidden>
+                                    <input type="range" id="scoutRatio" min="10" max="40" value="25" hidden>
+                                    <input type="range" id="soldierRatio" min="5" max="30" value="15" hidden>
+                                    <div class="role-bar" aria-hidden="true">
+                                        <span data-role-bar="workerRatio" style="--c: var(--worker)"></span>
+                                        <span data-role-bar="scoutRatio" style="--c: var(--scout)"></span>
+                                        <span data-role-bar="soldierRatio" style="--c: var(--soldier)"></span>
+                                    </div>
+                                    <div class="role-rows">
+                                        <div class="role-row">
+                                            <span class="swatch lg" style="--c: var(--worker)" aria-hidden="true"></span>
+                                            <span class="role-text"><span class="role-name">Workers</span><span class="muted small-14">Forage, carry food, tend the brood</span></span>
+                                            <span id="workerPercent" class="mono role-pct">60%</span>
+                                            <span class="stepper">
+                                                <button type="button" class="icon-btn" data-role="workerRatio" data-delta="-1" aria-label="Fewer workers"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                                                <button type="button" class="icon-btn" data-role="workerRatio" data-delta="1" aria-label="More workers"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+                                            </span>
+                                        </div>
+                                        <div class="role-row">
+                                            <span class="swatch lg" style="--c: var(--scout)" aria-hidden="true"></span>
+                                            <span class="role-text"><span class="role-name">Scouts</span><span class="muted small-14">Explore and lay pheromone trails to food</span></span>
+                                            <span id="scoutPercent" class="mono role-pct">25%</span>
+                                            <span class="stepper">
+                                                <button type="button" class="icon-btn" data-role="scoutRatio" data-delta="-1" aria-label="Fewer scouts"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                                                <button type="button" class="icon-btn" data-role="scoutRatio" data-delta="1" aria-label="More scouts"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+                                            </span>
+                                        </div>
+                                        <div class="role-row">
+                                            <span class="swatch lg" style="--c: var(--soldier)" aria-hidden="true"></span>
+                                            <span class="role-text"><span class="role-name">Soldiers</span><span class="muted small-14">Patrol the territory, defend the nest</span></span>
+                                            <span id="soldierPercent" class="mono role-pct">15%</span>
+                                            <span class="stepper">
+                                                <button type="button" class="icon-btn" data-role="soldierRatio" data-delta="-1" aria-label="Fewer soldiers"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                                                <button type="button" class="icon-btn" data-role="soldierRatio" data-delta="1" aria-label="More soldiers"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </fieldset>
+                            </section>
+
+                            <section class="form-section">
+                                <h2 class="section-title"><span class="section-num">03</span>Environment &amp; time</h2>
+
+                                <fieldset class="plain">
+                                    <legend>Food abundance</legend>
+                                    <input type="text" id="foodAbundance" value="normal" hidden>
+                                    <div class="card-grid compact" data-choice-for="foodAbundance">
+                                        <button type="button" class="choice-card" data-value="scarce"><span class="choice-title">Scarce</span><span class="choice-sub">Survival challenge</span></button>
+                                        <button type="button" class="choice-card" data-value="normal"><span class="choice-title">Normal</span><span class="choice-sub">Balanced</span></button>
+                                        <button type="button" class="choice-card" data-value="abundant"><span class="choice-title">Abundant</span><span class="choice-sub">Growth focus</span></button>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="plain">
+                                    <legend>Hazards</legend>
+                                    <input type="text" id="hazardLevel" value="normal" hidden>
+                                    <div class="card-grid compact" data-choice-for="hazardLevel">
+                                        <button type="button" class="choice-card" data-value="peaceful"><span class="choice-title">Peaceful</span><span class="choice-sub">No threats</span></button>
+                                        <button type="button" class="choice-card" data-value="normal"><span class="choice-title">Normal</span><span class="choice-sub">Occasional</span></button>
+                                        <button type="button" class="choice-card" data-value="dangerous"><span class="choice-title">Dangerous</span><span class="choice-sub">Frequent</span></button>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="plain">
+                                    <legend>Starting season</legend>
+                                    <input type="text" id="startingSeason" value="spring" hidden>
+                                    <div class="card-grid compact" data-choice-for="startingSeason">
+                                        <button type="button" class="choice-card" data-value="spring"><span class="choice-title">Spring</span><span class="choice-sub">Mild, growing</span></button>
+                                        <button type="button" class="choice-card" data-value="summer"><span class="choice-title">Summer</span><span class="choice-sub">Hot, busy</span></button>
+                                        <button type="button" class="choice-card" data-value="autumn"><span class="choice-title">Autumn</span><span class="choice-sub">Stores matter</span></button>
+                                        <button type="button" class="choice-card" data-value="winter"><span class="choice-title">Winter</span><span class="choice-sub">Lean, slow</span></button>
+                                    </div>
+                                </fieldset>
+
+                                <fieldset class="plain">
+                                    <legend>Time scale</legend>
+                                    <input type="text" id="startingTimeScale" value="60" hidden>
+                                    <div class="card-grid compact" data-choice-for="startingTimeScale">
+                                        <button type="button" class="choice-card" data-value="1"><span class="choice-title">1 : 1</span><span class="choice-sub">Real time</span></button>
+                                        <button type="button" class="choice-card" data-value="60"><span class="choice-title">1 min / s</span><span class="choice-sub">Minute scale</span></button>
+                                        <button type="button" class="choice-card" data-value="3600"><span class="choice-title">1 h / s</span><span class="choice-sub">Hour scale</span></button>
+                                        <button type="button" class="choice-card" data-value="86400"><span class="choice-title">1 day / s</span><span class="choice-sub">Day scale</span></button>
+                                        <button type="button" class="choice-card" data-value="604800"><span class="choice-title">1 wk / s</span><span class="choice-sub">Week scale</span></button>
+                                        <button type="button" class="choice-card" data-value="2628000"><span class="choice-title">1 mo / s</span><span class="choice-sub">Month scale</span></button>
+                                    </div>
+                                </fieldset>
+                            </section>
                         </div>
-                        <div class="config-row">
-                            <label for="worldSize">World Size:</label>
-                            <select id="worldSize">
-                                <option value="small">Small (100×75 - Fast)</option>
-                                <option value="medium" selected>Medium (200×150 - Balanced)</option>
-                                <option value="large">Large (300×200 - Detailed)</option>
-                                <option value="huge">Huge (500×300 - Epic)</option>
-                            </select>
-                        </div>
-                        <div class="config-row">
-                            <label for="biomeType">Biome:</label>
-                            <select id="biomeType">
-                                <option value="forest" selected>🌲 Forest Floor</option>
-                                <option value="desert">🏜️ Desert Oasis</option>
-                                <option value="grassland">🌾 Grassland</option>
-                                <option value="wetland">🌿 Wetland</option>
-                                <option value="mixed">🗺️ Mixed Terrain</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="config-section">
-                        <h3>🐜 Population Settings</h3>
-                        <div class="config-row">
-                            <label for="startingPopulation">Starting Population:</label>
-                            <input type="range" id="startingPopulation" min="5" max="50" value="12">
-                            <span id="populationValue">12 ants</span>
-                        </div>
-                        <div class="config-row">
-                            <label for="maxPopulation">Maximum Population:</label>
-                            <input type="range" id="maxPopulation" min="20" max="200" value="50">
-                            <span id="maxPopulationValue">50 ants</span>
-                        </div>
-                        <div class="role-distribution">
-                            <h4>Role Distribution:</h4>
-                            <div class="role-slider">
-                                <label for="workerRatio">🟢 Workers:</label>
-                                <input type="range" id="workerRatio" min="30" max="80" value="60">
-                                <span id="workerPercent">60%</span>
+
+                        <aside class="summary-card" aria-label="Colony summary">
+                            <p class="eyebrow">Preview</p>
+                            <canvas id="worldPreview" class="pixel-canvas preview-canvas" aria-hidden="true"></canvas>
+                            <div class="legend">
+                                <span class="legend-item"><span class="swatch ring" style="--c: var(--worker)"></span>Your nest</span>
+                                <span class="legend-item"><span class="swatch ring" style="--c: var(--rival)"></span>Rival nest</span>
+                                <span class="legend-item"><span class="swatch" style="--c: var(--amber)"></span>Food</span>
                             </div>
-                            <div class="role-slider">
-                                <label for="scoutRatio">🔵 Scouts:</label>
-                                <input type="range" id="scoutRatio" min="10" max="40" value="25">
-                                <span id="scoutPercent">25%</span>
+                            <h2 id="summaryName" class="title-m">Unnamed colony</h2>
+                            <dl class="facts">
+                                <dt>Size</dt><dd id="summarySize">Medium · 200 × 150</dd>
+                                <dt>Biome</dt><dd id="summaryBiome">Forest floor</dd>
+                                <dt>Colonies</dt><dd id="summaryColonies">Just yours</dd>
+                                <dt>Food</dt><dd id="summaryFood">Normal</dd>
+                                <dt>Hazards</dt><dd id="summaryHazards">Normal</dd>
+                                <dt>Season</dt><dd id="summarySeason">Spring</dd>
+                                <dt>Time</dt><dd id="summaryTime">1 min / s</dd>
+                                <dt>Cap</dt><dd id="summaryCap">50 ants</dd>
+                            </dl>
+                            <div class="summary-split">
+                                <span id="summaryStart">12 ants hatch on day one</span>
+                                <div class="role-bar thin" aria-hidden="true">
+                                    <span data-role-bar="workerRatio" style="--c: var(--worker)"></span>
+                                    <span data-role-bar="scoutRatio" style="--c: var(--scout)"></span>
+                                    <span data-role-bar="soldierRatio" style="--c: var(--soldier)"></span>
+                                </div>
+                                <span id="summarySplit" class="mono muted small">7 workers · 3 scouts · 2 soldiers</span>
                             </div>
-                            <div class="role-slider">
-                                <label for="soldierRatio">🔴 Soldiers:</label>
-                                <input type="range" id="soldierRatio" min="5" max="30" value="15">
-                                <span id="soldierPercent">15%</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="config-section">
-                        <h3>🍯 Environment Settings</h3>
-                        <div class="config-row">
-                            <label for="foodAbundance">Food Abundance:</label>
-                            <select id="foodAbundance">
-                                <option value="scarce">🍂 Scarce (Survival Challenge)</option>
-                                <option value="normal" selected>🍯 Normal (Balanced)</option>
-                                <option value="abundant">🍇 Abundant (Growth Focus)</option>
-                            </select>
-                        </div>
-                        <div class="config-row">
-                            <label for="hazardLevel">Hazard Level:</label>
-                            <select id="hazardLevel">
-                                <option value="peaceful">🕊️ Peaceful (No Threats)</option>
-                                <option value="normal" selected>⚖️ Normal (Occasional)</option>
-                                <option value="dangerous">⚡ Dangerous (Frequent)</option>
-                            </select>
-                        </div>
-                        <div class="config-row">
-                            <label for="startingSeason">Starting Season:</label>
-                            <select id="startingSeason">
-                                <option value="spring" selected>🌸 Spring</option>
-                                <option value="summer">☀️ Summer</option>
-                                <option value="autumn">🍂 Autumn</option>
-                                <option value="winter">❄️ Winter</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="config-section">
-                        <h3>⏰ Time Settings</h3>
-                        <div class="config-row">
-                            <label for="startingTimeScale">Initial Time Scale:</label>
-                            <select id="startingTimeScale">
-                                <option value="1">Real Time (1:1)</option>
-                                <option value="60" selected>Minute Scale (1:60)</option>
-                                <option value="3600">Hour Scale (1:3600)</option>
-                                <option value="86400">Day Scale (1 day/sec)</option>
-                                <option value="604800">Week Scale (1 week/sec)</option>
-                                <option value="2628000">Month Scale (1 month/sec) ⚡</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="config-buttons">
-                        <button type="button" id="presetQuickStart" class="config-btn secondary">⚡ Quick Start</button>
-                        <button type="button" id="presetSurvival" class="config-btn secondary">💀 Survival Mode</button>
-                        <button type="button" id="presetEvolution" class="config-btn secondary">🧬 Evolution Lab</button>
-                        <button type="submit" class="config-btn primary">🚀 Create World</button>
+                            <button type="submit" class="cta">Found colony <svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+                        </aside>
                     </div>
                 </form>
             </div>
         </div>
-        
+
+        <!-- ============ In-game HUD ============ -->
+        <div id="simulationInterface" class="screen hud hidden">
+            <header class="topbar hud-bar">
+                <div class="hud-world">
+                    <button id="backToMenuBtn" type="button" class="icon-btn" aria-label="Main menu"><svg aria-hidden="true"><use href="#i-home"/></svg></button>
+                    <div class="hud-world-text">
+                        <span id="hudWorldName" class="pixel title-s">Colony</span>
+                        <span id="hudWorldMeta" class="muted small">—</span>
+                    </div>
+                </div>
+
+                <div class="hud-clock">
+                    <span id="currentSeason" class="season-chip">Spring</span>
+                    <span class="mono muted">Time</span>
+                    <span id="hudClock" class="mono clock">00:00</span>
+                </div>
+
+                <div class="hud-controls">
+                    <button id="playPauseBtn" type="button" class="icon-btn solid" aria-label="Start simulation">
+                        <svg aria-hidden="true"><use href="#i-play"/></svg>
+                    </button>
+                    <div id="speedGroup" class="segmented joined" role="group" aria-label="Simulation speed">
+                        <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+                        <button type="button" data-speed="1" aria-pressed="true">1×</button>
+                        <button type="button" data-speed="2" aria-pressed="false">2×</button>
+                        <button type="button" data-speed="5" aria-pressed="false">5×</button>
+                        <button type="button" data-speed="10" aria-pressed="false">10×</button>
+                        <button type="button" data-speed="20" aria-pressed="false">20×</button>
+                    </div>
+                    <span id="fps" class="mono muted small">0 FPS</span>
+                </div>
+            </header>
+
+            <div class="hud-body">
+                <main class="hud-main">
+                    <div class="map-toolbar">
+                        <fieldset class="plain layers">
+                            <legend class="eyebrow">Layers</legend>
+                            <label class="chip"><input type="checkbox" id="layerTerrain" checked> Terrain</label>
+                            <label class="chip"><input type="checkbox" id="layerTrails" checked> Pheromone trails</label>
+                            <label class="chip"><input type="checkbox" id="layerStates"> Behaviour states</label>
+                            <label class="chip"><input type="checkbox" id="layerTerritory"> Territory</label>
+                        </fieldset>
+                        <ul id="mapLegend" class="legend" aria-label="Map legend"></ul>
+                    </div>
+
+                    <div class="map-frame">
+                        <canvas id="colonyCanvas"></canvas>
+                        <div id="pausedBadge" class="paused-badge hidden">Paused · Space to resume</div>
+                        <div class="map-zoom">
+                            <button type="button" id="zoomInBtn" class="icon-btn dark" aria-label="Zoom in"><svg aria-hidden="true"><use href="#i-plus"/></svg></button>
+                            <button type="button" id="zoomOutBtn" class="icon-btn dark" aria-label="Zoom out"><svg aria-hidden="true"><use href="#i-minus"/></svg></button>
+                            <button type="button" id="resetViewBtn" class="icon-btn dark" aria-label="Recenter the view"><svg aria-hidden="true"><use href="#i-target"/></svg></button>
+                        </div>
+                    </div>
+
+                    <section class="panel log" aria-label="Colony log">
+                        <h2 class="title-s">Colony log</h2>
+                        <ol id="activityFeed" class="log-list"></ol>
+                    </section>
+                </main>
+
+                <aside class="hud-side" aria-label="Colony panel">
+                    <section class="panel">
+                        <h2 class="eyebrow">Your colony</h2>
+                        <div class="big-stat"><span id="totalPopulation" class="pixel big-num">0</span><span id="populationCap" class="muted">ants</span></div>
+                        <div class="role-bar thin" aria-hidden="true">
+                            <span id="hudWorkerBar" style="--c: var(--worker)"></span>
+                            <span id="hudScoutBar" style="--c: var(--scout)"></span>
+                            <span id="hudSoldierBar" style="--c: var(--soldier)"></span>
+                        </div>
+                        <div class="role-counts">
+                            <span><span id="workerCount" class="mono num">0</span><span class="muted">Workers</span></span>
+                            <span><span id="scoutCount" class="mono num">0</span><span class="muted">Scouts</span></span>
+                            <span><span id="soldierCount" class="mono num">0</span><span class="muted">Soldiers</span></span>
+                        </div>
+                        <dl class="facts tight">
+                            <dt>Food stores</dt><dd id="foodStores" class="mono">0</dd>
+                            <dt>Food sources on map</dt><dd id="foodCount" class="mono">0</dd>
+                            <dt>Morale</dt><dd id="moraleValue">—</dd>
+                        </dl>
+                    </section>
+
+                    <section class="panel">
+                        <h2 class="eyebrow">Colonies on the map</h2>
+                        <ul id="coloniesList" class="colonies-list"></ul>
+                    </section>
+
+                    <section class="panel">
+                        <h2 class="eyebrow">Intervene</h2>
+                        <div class="intervene">
+                            <button type="button" id="spawnFoodBtn" class="tool-btn"><svg aria-hidden="true" class="accent"><use href="#i-seeds"/></svg>Spawn food</button>
+                            <button type="button" id="resetBtn" class="tool-btn"><svg aria-hidden="true"><use href="#i-reset"/></svg>Reset colony</button>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+        </div>
+
+        <!-- ============ Load world modal ============ -->
+        <div id="loadWorldModal" class="modal hidden">
+            <div class="modal-content load-world-modal" role="dialog" aria-modal="true" aria-labelledby="loadWorldTitle">
+                <button type="button" class="modal-close icon-btn" id="loadWorldClose" aria-label="Close"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+                <h2 id="loadWorldTitle" class="title-m">Load a saved world</h2>
+                <div class="load-world-content">
+                    <div class="saved-worlds-grid" id="savedWorldsGrid"></div>
+                    <div class="load-actions">
+                        <button type="button" id="deleteWorldBtn" class="btn danger" disabled>Delete</button>
+                        <button type="button" id="cancelLoadBtn" class="btn">Cancel</button>
+                        <button type="button" id="loadSelectedBtn" class="btn primary" disabled>Load world</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Loading overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
-            <div class="loading-spinner">🐜</div>
-            <p>Initializing ant colony simulation...</p>
-            <div class="loading-progress">
-                <div id="loadingBar" class="loading-bar"></div>
-            </div>
+            <svg class="loading-ant" aria-hidden="true"><use href="#i-ant"/></svg>
+            <p>Digging the first tunnels…</p>
+            <div class="loading-progress"><div id="loadingBar" class="loading-bar"></div></div>
         </div>
     </div>
 
     <!-- Ant details modal -->
     <div id="antModal" class="modal hidden">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h3>Ant Details</h3>
-            <div id="antDetails" class="ant-details">
-                <!-- Ant details will be populated by JavaScript -->
-            </div>
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <button type="button" class="modal-close icon-btn" aria-label="Close"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+            <h3 class="title-m">Ant details</h3>
+            <div id="antDetails" class="ant-details"></div>
         </div>
     </div>
 
-    <!-- Vite Entry Point -->
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

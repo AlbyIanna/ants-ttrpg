@@ -1,4 +1,4 @@
-# 🐜 Ant Colony TTRPG Prototype v0.6
+# 🐜 Ant Colony TTRPG Prototype v0.7
 
 A **fully configurable world management system** for swarm intelligence simulation featuring autonomous ant colonies, extreme time scaling, and Game of Life-style world creation. Built with Vite and comprehensive testing coverage.
 
@@ -12,7 +12,7 @@ npm run dev          # Start development server with HMR
 
 **Testing & Production:**
 ```bash
-npm test             # Run comprehensive test suite (29 tests)
+npm test             # Run comprehensive test suite (250+ tests)
 npm run build        # Build optimized bundle (69KB JS + 11KB CSS)
 npm run preview      # Preview production build
 ```
@@ -23,7 +23,7 @@ npm run preview      # Preview production build
 - ⏰ **Extreme Time Scaling**: From real-time to 1 month per second (1:2628000 ratio)
 - 💾 **Save/Load System**: Persistent world storage with professional management interface
 - 🔧 **Runtime Configuration**: Live parameter adjustment during simulation
-- 🧪 **Comprehensive Testing**: 29 test cases with full menu and functionality coverage
+- 🧪 **Comprehensive Testing**: 250+ test cases with full menu and functionality coverage
 - 🎨 **Pixel Art Canvas**: 450×300 pixel world with hand-crafted 6×6 sprites
 - 🔥 **Hot Module Reload**: Instant updates during development (~50ms)
 - 🐜 **Autonomous AI**: Role-based ant behaviors (workers, scouts, soldiers)
@@ -99,7 +99,7 @@ Perfect for studying collective intelligence, emergence, and complex adaptive sy
 ## 🔧 Technical Highlights
 
 - **Zero Dependencies**: Pure vanilla JavaScript with modern ES6 modules
-- **Comprehensive Testing**: 29 test cases with Vitest and jsdom environment
+- **Comprehensive Testing**: 250+ test cases with Vitest and jsdom environment
 - **Vite Build System**: Lightning-fast development with hot module reload
 - **Canvas Optimization**: 60fps pixel-perfect rendering on 450×300 display
 - **World Management**: Professional save/load system with localStorage persistence

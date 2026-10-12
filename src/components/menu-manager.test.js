@@ -245,7 +245,7 @@ describe('MenuManager', () => {
       
       const resumeBtn = document.getElementById('resumeWorldBtn')
       expect(resumeBtn.disabled).toBe(false)
-      expect(resumeBtn.innerHTML).toContain('Resume: Last World')
+      expect(resumeBtn.textContent).toContain('Resume Last World')
     })
 
     it('should disable resume button when no last world exists', () => {
@@ -255,7 +255,7 @@ describe('MenuManager', () => {
       
       const resumeBtn = document.getElementById('resumeWorldBtn')
       expect(resumeBtn.disabled).toBe(true)
-      expect(resumeBtn.innerHTML).toContain('Resume Last World')
+      expect(resumeBtn.textContent).toContain('Resume last world')
     })
   })
 
