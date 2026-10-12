@@ -23,6 +23,7 @@
         <symbol id="i-target" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="10" cy="10" r="3"/><path d="M10 2.5v3M10 14.5v3M2.5 10h3M14.5 10h3"/></g></symbol>
         <symbol id="i-seeds" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="7" cy="12" r="3"/><circle cx="13" cy="8" r="3"/></g></symbol>
         <symbol id="i-reset" viewBox="0 0 20 20"><path d="M4.5 10a5.5 5.5 0 1 0 1.6-3.9M4.5 3.5v3h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="i-dice" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><rect x="3.5" y="3.5" width="13" height="13" rx="2"/><circle cx="7.5" cy="7.5" r="0.9" fill="currentColor"/><circle cx="12.5" cy="12.5" r="0.9" fill="currentColor"/><circle cx="10" cy="10" r="0.9" fill="currentColor"/></g></symbol>
         <symbol id="i-close" viewBox="0 0 20 20"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     </svg>
 
@@ -340,6 +341,7 @@
                 </div>
 
                 <div class="hud-controls">
+                    <button id="openGameMasterBtn" type="button" class="btn gm-open"><svg aria-hidden="true"><use href="#i-dice"/></svg>GameMaster</button>
                     <button id="playPauseBtn" type="button" class="icon-btn solid" aria-label="Start simulation">
                         <svg aria-hidden="true"><use href="#i-play"/></svg>
                     </button>
@@ -418,6 +420,94 @@
                         </div>
                     </section>
                 </aside>
+            </div>
+        </div>
+
+
+        <!-- ============ GameMaster turn screen ============ -->
+        <div id="gameMasterScreen" class="screen gm hidden">
+            <header class="topbar hud-bar">
+                <div class="hud-world">
+                    <button id="gmBackBtn" type="button" class="icon-btn" aria-label="Back to the live colony"><svg aria-hidden="true"><use href="#i-back"/></svg></button>
+                    <div class="hud-world-text">
+                        <span id="gmWorldLine" class="eyebrow">GameMaster</span>
+                        <span id="gmScenarioTitle" class="pixel gm-title">—</span>
+                    </div>
+                </div>
+                <div class="gm-turn">
+                    <span class="mono muted">Turn</span>
+                    <span id="gmTurn" class="pixel gm-turn-num">1</span>
+                </div>
+            </header>
+
+            <div class="gm-body">
+                <aside class="gm-side" aria-label="Scenario and colony">
+                    <section class="panel gm-panel">
+                        <h2 class="eyebrow">Scenario</h2>
+                        <p id="gmSetup" class="gm-setup"></p>
+                        <div class="gm-goal">
+                            <span class="muted small-14">Goal</span>
+                            <span id="gmGoal" class="gm-goal-text"></span>
+                            <div class="gm-goal-row"><span id="gmGoalLabel">Colony size</span><span id="gmGoalValue" class="mono">0 / 0</span></div>
+                            <div class="gm-meter" aria-hidden="true"><span id="gmGoalBar"></span></div>
+                        </div>
+                        <ul id="gmRules" class="gm-rules"></ul>
+                    </section>
+
+                    <section class="panel gm-panel">
+                        <h2 class="eyebrow">Colony</h2>
+                        <div class="gm-stats">
+                            <div><span id="gmFood" class="pixel gm-stat">0</span><span class="muted small">Food</span></div>
+                            <div><span id="gmAnts" class="pixel gm-stat">0</span><span class="muted small">Ants</span></div>
+                            <div><span id="gmMorale" class="pixel gm-stat">0</span><span class="muted small">Morale</span></div>
+                        </div>
+                        <div class="gm-roles">
+                            <div class="gm-role"><span class="swatch lg" style="--c: var(--worker)" aria-hidden="true"></span><span class="grow">Workers</span><span id="gmWorkers" class="mono">0</span></div>
+                            <div class="gm-role"><span class="swatch lg" style="--c: var(--scout)" aria-hidden="true"></span><span class="grow">Scouts</span><span id="gmScouts" class="mono">0</span></div>
+                            <div class="gm-role"><span class="swatch lg" style="--c: var(--soldier)" aria-hidden="true"></span><span class="grow">Soldiers</span><span id="gmSoldiers" class="mono">0</span></div>
+                        </div>
+                        <div class="gm-energy-row">
+                            <span>Energy this turn</span>
+                            <span id="gmEnergy" class="gm-energy" role="img" aria-label="3 of 3 energy left"></span>
+                        </div>
+                    </section>
+
+                    <button id="gmWatchBtn" type="button" class="btn gm-watch">Watch the colony live</button>
+                </aside>
+
+                <main class="gm-main">
+                    <section class="gm-story" aria-label="Story so far">
+                        <ol id="gmStory" class="gm-story-list"></ol>
+                        <div class="gm-now" aria-live="polite">
+                            <span class="mono gm-when accent">Now</span>
+                            <div class="stack-10">
+                                <span class="pixel accent gm-voice">The GameMaster</span>
+                                <p id="gmPrompt" class="pixel gm-prompt"></p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <fieldset id="gmChoose" class="plain gm-choose">
+                        <legend class="eyebrow">Choose the colony's action</legend>
+                        <div id="gmActions" class="gm-actions"></div>
+                        <div class="gm-commit-row">
+                            <div class="field gm-plan">
+                                <label for="gmOwnPlan" class="muted">Or describe your own plan to the GameMaster</label>
+                                <input id="gmOwnPlan" type="text" class="text-input" placeholder="e.g. Lure the bird toward Red Ridge's nest" maxlength="120" autocomplete="off">
+                            </div>
+                            <button id="gmCommitBtn" type="button" class="cta gm-commit" disabled><svg aria-hidden="true"><use href="#i-dice"/></svg><span id="gmCommitLabel">Pick an action</span></button>
+                        </div>
+                    </fieldset>
+
+                    <section id="gmResult" class="gm-result hidden" aria-label="Turn result" aria-live="polite">
+                        <div class="gm-die"><span id="gmRoll" class="pixel">—</span><span class="mono muted small">d100</span></div>
+                        <div class="gm-result-text">
+                            <span id="gmResultTitle" class="pixel gm-result-title"></span>
+                            <span id="gmResultDetail" class="mono gm-result-detail"></span>
+                        </div>
+                        <button id="gmNextBtn" type="button" class="btn">Next turn</button>
+                    </section>
+                </main>
             </div>
         </div>
 

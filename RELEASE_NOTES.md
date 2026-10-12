@@ -10,7 +10,20 @@ Implements the "Ant Colony TTRPG — UI Design" canvas (title menu, world creati
 - **World creation**: full screen instead of a modal; card choices for size, biome, food, hazards, season and time scale; nest count (1-4); role split with +/- steppers that always total 100%; live preview map and summary.
 - **HUD**: top bar with season, elapsed time, play/pause and speed presets (0.5x-20x); Layers chips (Terrain, Pheromone trails, Behaviour states, Territory); zoom buttons; side panel with population, role split, food, morale and every colony on the map; colony log (the existing activity feed); Spawn food and Reset colony.
 
+### GameMaster turn screen
+Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live colony, opened from the new **GameMaster** button in the HUD top bar (back arrow, Escape or "Watch the colony live" returns to the map; the simulation is not touched).
+- **Scenario card**: loaded from `narrative/scenario-templates.json` (`opening_scenarios`). Spring/summer worlds play *The Bird's Shadow* (grow to 15 ants), autumn/winter worlds play *The Coming Winter* (last 10 turns with at least 10 ants). Goal progress bar and special-rule chips.
+- **Colony panel**: food, ants, morale, workers/scouts/soldiers (split by the world's role ratios) and 3 energy pips; energy refills by 1 each turn.
+- **Story feed**: scenario setup, action flavour text (`action_flavors`), events and discoveries (`event_expansions`) and colony status lines (`status_messages`), each with its outcome.
+- **Action cards**: forage, explore, defend, rest from `rules/action-schema.json`, with needs, effect, risk and success chance. Cards whose requirements are not met are disabled and say why.
+- **Your own plan**: free text put to the GameMaster as a 50% roll (1 energy, morale +1 on success, -1 on failure).
+- **Resolution**: a visible d100 roll-under against `success_rate`, dice effects such as `1d6+2` rolled and shown ("Food +6 (1d6+2: 4 + 2)"). Failed forage triggers a predator encounter (1d2 ants, reduced by defence); failed explore loses the scouts for a turn; *increased predator encounters* adds a 15% ambush on successful forays.
+- **Next turn**: the colony eats one food per four ants (doubled after turn 5 in winter); hungry colonies lose ants and morale, well-fed ones hatch a worker. Win and loss end the game with a "Play again".
+- **Deterministic**: every roll comes from the seeded `rng()` in `pixel-art.js` (seed = world id + play number).
+
 ### New modules
+- `src/components/game-master-rules.js` - pure turn rules (dice, d100 checks, requirements, effects, upkeep, goals); 32 tests in `game-master-rules.test.js`.
+- `src/components/game-master.js` - GameMaster screen rendering and input.
 - `src/components/pixel-art.js` - shared palette, seeded RNG and pixel illustrations.
 - `src/components/world-form.js` - world-creation behaviour; `rebalanceRoles()` is unit-tested in `world-form.test.js`.
 
@@ -24,7 +37,7 @@ Implements the "Ant Colony TTRPG — UI Design" canvas (title menu, world creati
 - The FPS counter counts renders, which happen once per simulation tick (every 800 ms at 1x).
 - A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
 - Three simulation tests fail (two always, others intermittently) because world generation uses unseeded `Math.random()`; unrelated to this release.
-- The GameMaster turn screen from the design is not implemented yet.
+- The GameMaster session is not saved with the world and does not feed back into the live simulation; it resets on page reload.
 
 ## prototype-v0.6 - Configurable Worlds Edition (2025-09-12)
 

@@ -6,6 +6,7 @@
  * Changelog:
  *   v0.7 - Full rewrite: soil palette, pixel display type, role colours,
  *          card-based world form, HUD with layers, side panel and colony log.
+ *   v0.7 - GameMaster turn screen: scenario card, story feed, action cards, d100 result.
  */
 
 /* ---------- Tokens ---------- */
@@ -345,6 +346,103 @@ input[type="range"] { width: 100%; min-height: var(--hit); margin: 0; accent-col
   .summary-card { position: static; max-width: none; }
 }
 
+/* ---------- GameMaster turn screen ---------- */
+.gm-open { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; font-size: 14px; }
+.gm-open svg { width: 18px; height: 18px; color: var(--amber); }
+.gm-title { font-size: 24px; font-weight: 600; line-height: 1.1; }
+.gm-turn { display: flex; align-items: center; gap: 12px; }
+.gm-turn .mono { font-size: 15px; }
+.gm-turn-num { font-size: 28px; font-weight: 600; }
+
+.gm-body {
+  flex-grow: 1; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;
+  width: 100%; max-width: 1440px; margin: 0 auto; padding: 24px clamp(12px, 2vw, 24px) 32px;
+}
+.gm-side { flex: 1 1 300px; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+.gm-panel { padding: 20px; }
+.gm-setup { font-size: 15px; line-height: 1.55; color: var(--text-soft); }
+.gm-goal { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.gm-goal-text { font-size: 15px; font-weight: 500; }
+.gm-goal-row { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+.gm-meter { height: 8px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.gm-meter > span { display: block; height: 100%; width: 0; background: var(--amber); transition: width 160ms ease; }
+.gm-rules { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
+.gm-rules li { padding: 4px 10px; border: 1px solid var(--soldier); border-radius: 999px; font-size: 13px; color: #E8957F; }
+
+.gm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.gm-stats > div { display: flex; flex-direction: column; gap: 2px; }
+.gm-stat { font-size: 32px; font-weight: 600; line-height: 1.1; }
+.gm-roles { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.gm-role { display: flex; align-items: center; gap: 10px; }
+.gm-role .swatch { width: 12px; height: 12px; }
+.gm-role .grow { flex-grow: 1; }
+.gm-energy-row { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.gm-energy { display: flex; gap: 4px; }
+.gm-energy > span { width: 14px; height: 14px; border: 2px solid var(--line-strong); }
+.gm-energy > span.on { background: var(--amber); border-color: var(--amber); }
+.gm-watch { width: 100%; }
+
+.gm-main { flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+.gm-story { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.gm-story-list { max-height: 520px; overflow-y: auto; }
+.gm-beat { display: flex; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line-soft); }
+.gm-when { width: 64px; flex-shrink: 0; padding-top: 4px; font-size: 12px; color: var(--text-muted); }
+.gm-beat-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.gm-tag {
+  display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--c);
+}
+.gm-tag::before { content: ''; width: 8px; height: 8px; background: var(--c); }
+.gm-beat-text { font-size: 17px; line-height: 1.6; font-style: italic; color: #EADFC8; }
+.gm-beat-outcome { font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); }
+.gm-now { display: flex; gap: 16px; padding: 22px; background: var(--panel); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.gm-now .gm-when { padding-top: 6px; color: var(--amber); }
+.gm-voice { font-size: 15px; }
+.gm-prompt { font-size: 24px; line-height: 1.35; }
+
+.gm-choose { display: flex; flex-direction: column; gap: 12px; }
+.gm-choose > legend.eyebrow { font-size: 13px; margin-bottom: 12px; }
+.gm-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.gm-action {
+  display: flex; flex-direction: column; align-items: stretch; gap: 10px; min-height: var(--hit); padding: 16px;
+  background: var(--panel); border: 2px solid var(--line); border-radius: var(--radius); text-align: left;
+}
+.gm-action:hover:not(:disabled) { border-color: var(--line-strong); }
+.gm-action[aria-pressed="true"] { background: var(--raised); border-color: var(--amber); }
+.gm-action-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.gm-action-name { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.gm-action-odds { font-family: var(--font-mono); font-size: 14px; color: var(--amber); }
+.gm-action-desc { font-size: 14px; line-height: 1.4; color: var(--text-soft); }
+.gm-action-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
+.gm-action-facts dt { color: var(--text-muted); }
+.gm-action-facts .risky { color: #E8957F; }
+.gm-action-facts .safe { color: var(--text-muted); }
+.gm-action-blocked { font-size: 13px; color: #E8957F; }
+.gm-commit-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 4px; }
+.gm-plan { flex: 1 1 320px; gap: 6px; }
+.gm-plan label { font-size: 14px; font-weight: 400; }
+.gm-plan .text-input { font-size: 15px; }
+.gm-commit { min-height: 48px; padding: 0 24px; }
+.gm-commit:disabled:hover { background: var(--amber); }
+
+.gm-result {
+  display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 22px;
+  background: var(--panel); border: 2px solid var(--c, var(--line)); border-radius: var(--radius-lg);
+}
+.gm-die {
+  width: 96px; height: 96px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 2px solid var(--c, var(--line)); border-radius: 8px;
+}
+.gm-die .pixel { font-size: 40px; font-weight: 700; line-height: 1; }
+.gm-result-text { flex: 1 1 320px; display: flex; flex-direction: column; gap: 6px; }
+.gm-result-title { font-size: 24px; font-weight: 600; color: var(--c); }
+.gm-result-detail { font-size: 14px; color: var(--text-soft); }
+.gm-result .btn { min-height: 48px; background: none; }
+
+@media (max-width: 900px) {
+  .gm-side { max-width: none; }
+}
+
 /* ---------- Modals & overlays ---------- */
 .modal {
   position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
@@ -386,5 +484,5 @@ input[type="range"] { width: 100%; min-height: var(--hit); margin: 0; accent-col
 
 @media (prefers-reduced-motion: reduce) {
   .loading-ant { animation: none; }
-  .role-bar > span, .loading-bar { transition: none; }
+  .role-bar > span, .loading-bar, .gm-meter > span { transition: none; }
 }

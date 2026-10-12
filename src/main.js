@@ -7,6 +7,7 @@ import { Utils } from './components/utils.js';
 import { WebSimulation } from './components/web-simulation.js';
 import { SimpleRenderer } from './components/simple-renderer.js';
 import { MenuManager } from './components/menu-manager.js';
+import { GameMasterScreen } from './components/game-master.js';
 import { PALETTE, STATE_COLORS } from './components/pixel-art.js';
 import './styles/styles.css';
 
@@ -26,6 +27,7 @@ class AntColonyApp {
     this.resetBtn = null;
     this.speedGroup = null;
     this.pausedBadge = null;
+    this.gameMaster = null;
     this.speed = 1.0;
 
     // Settings (mirrors the HUD's Layers chips)
@@ -207,6 +209,13 @@ class AntColonyApp {
     document.getElementById('zoomOutBtn')?.addEventListener('click', () => { this.renderer?.zoomBy(0.8); this.redraw(); });
     document.getElementById('resetViewBtn')?.addEventListener('click', () => { this.renderer?.resetView(); this.redraw(); });
 
+    // GameMaster: the turn-based TTRPG screen on top of the live colony
+    this.gameMaster = new GameMasterScreen({
+      getWorldConfig: () => this.menuManager?.getCurrentWorldConfig(),
+      onBack: () => this.redraw()
+    });
+    document.getElementById('openGameMasterBtn')?.addEventListener('click', () => this.gameMaster.open());
+
     // Intervene: drop a few new food sources onto the map
     document.getElementById('spawnFoodBtn')?.addEventListener('click', () => {
       const env = this.simulation?.state?.environment;
@@ -245,6 +254,8 @@ class AntColonyApp {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
         return;
       }
+      // Map shortcuts belong to the live colony, not the GameMaster screen
+      if (this.gameMaster?.isOpen()) return;
       
       switch (e.code) {
         case 'Space':
