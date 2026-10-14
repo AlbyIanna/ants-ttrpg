@@ -6,11 +6,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WebSimulation } from './web-simulation.js'
 
+// Fixed seed so worlds and ticks are reproducible; override with TEST_SEED=n
+const TEST_SEED = Number(process.env.TEST_SEED ?? 20261014)
+
 describe('WebSimulation - Multiple Nests Support', () => {
   let simulation
 
   beforeEach(() => {
-    simulation = new WebSimulation()
+    simulation = new WebSimulation({ seed: TEST_SEED })
   })
 
   afterEach(() => {
@@ -364,8 +367,9 @@ describe('WebSimulation - Multiple Nests Support', () => {
       // Should have single nest behavior
       expect(state.nests).toBeDefined()
       expect(state.nests.length).toBe(1)
-      expect(state.nests[0].position.x).toBeCloseTo(state.environment.metadata.width / 2, 0)
-      expect(state.nests[0].position.y).toBeCloseTo(state.environment.metadata.height / 2, 0)
+      // The single nest sits on the centre cell, rounded down (75 high -> row 37)
+      expect(state.nests[0].position.x).toBe(Math.floor(state.environment.metadata.width / 2))
+      expect(state.nests[0].position.y).toBe(Math.floor(state.environment.metadata.height / 2))
     })
 
     it('should support legacy single-nest API', async () => {

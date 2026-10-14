@@ -1,4 +1,4 @@
-# 🐜 Ant Colony TTRPG Prototype v0.6
+# 🐜 Ant Colony TTRPG Prototype v0.7
 
 A **fully configurable world management system** for swarm intelligence simulation featuring autonomous ant colonies, extreme time scaling, and Game of Life-style world creation. Built with Vite and comprehensive testing coverage.
 
@@ -12,7 +12,7 @@ npm run dev          # Start development server with HMR
 
 **Testing & Production:**
 ```bash
-npm test             # Run comprehensive test suite (29 tests)
+npm test             # Run comprehensive test suite (250+ tests)
 npm run build        # Build optimized bundle (69KB JS + 11KB CSS)
 npm run preview      # Preview production build
 ```
@@ -23,9 +23,10 @@ npm run preview      # Preview production build
 - ⏰ **Extreme Time Scaling**: From real-time to 1 month per second (1:2628000 ratio)
 - 💾 **Save/Load System**: Persistent world storage with professional management interface
 - 🔧 **Runtime Configuration**: Live parameter adjustment during simulation
-- 🧪 **Comprehensive Testing**: 29 test cases with full menu and functionality coverage
+- 🧪 **Comprehensive Testing**: 250+ test cases with full menu and functionality coverage
 - 🎨 **Pixel Art Canvas**: 450×300 pixel world with hand-crafted 6×6 sprites
 - 🔥 **Hot Module Reload**: Instant updates during development (~50ms)
+- 🎲 **GameMaster Turns**: A turn-based TTRPG layer over the live colony: scenarios, action cards, d100 rolls and a story feed
 - 🐜 **Autonomous AI**: Role-based ant behaviors (workers, scouts, soldiers)
 - ⚡ **60 FPS Performance**: Smooth Canvas rendering with hardware acceleration
 
@@ -47,11 +48,26 @@ src/                    # ES6 modules with Vite HMR
 ├── components/
 │   ├── utils.js       # Performance & DOM helpers  
 │   ├── web-simulation.js    # Ant AI & environment
-│   └── pixel-renderer.js    # Canvas graphics
+│   ├── pixel-renderer.js    # Canvas graphics
+│   ├── game-master.js       # GameMaster turn screen (UI)
+│   └── game-master-rules.js # Turn rules: dice, d100 checks, upkeep, goals
 └── styles/styles.css  # Responsive design
 
-Legacy: sims/*, rules/*, narrative/* (reference)
+rules/action-schema.json        # Actions used by the GameMaster screen
+narrative/scenario-templates.json  # Scenarios, flavour text and events
+Legacy: sims/* (reference)
 ```
+
+## 🎲 GameMaster Mode
+
+Open a world, then press **GameMaster** in the HUD top bar.
+
+1. Read the scenario and its goal (spring/summer worlds: *The Bird's Shadow*; autumn/winter: *The Coming Winter*).
+2. Pick one action card (forage, explore, defend, rest) or type your own plan; cards you cannot afford are disabled and say why.
+3. Roll: a d100 at or under the action's success chance succeeds; effects like `food +1d6+2` are rolled and shown.
+4. **Next turn**: energy +1, the colony eats (1 food per 4 ants) and may hatch a worker or starve.
+
+Rules live in `src/components/game-master-rules.js` and are seeded, so `game-master-rules.test.js` replays exact rolls. The back arrow, Escape or "Watch the colony live" returns to the map.
 
 ## 🎮 Controls & Interaction
 
@@ -99,7 +115,7 @@ Perfect for studying collective intelligence, emergence, and complex adaptive sy
 ## 🔧 Technical Highlights
 
 - **Zero Dependencies**: Pure vanilla JavaScript with modern ES6 modules
-- **Comprehensive Testing**: 29 test cases with Vitest and jsdom environment
+- **Comprehensive Testing**: 250+ test cases with Vitest and jsdom environment
 - **Vite Build System**: Lightning-fast development with hot module reload
 - **Canvas Optimization**: 60fps pixel-perfect rendering on 450×300 display
 - **World Management**: Professional save/load system with localStorage persistence

@@ -6,11 +6,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WebSimulation } from './web-simulation.js'
 
+// Fixed seed so worlds and ticks are reproducible; override with TEST_SEED=n
+const TEST_SEED = Number(process.env.TEST_SEED ?? 20261014)
+
 describe('WebSimulation - Scalable World Generation', () => {
   let simulation
 
   beforeEach(() => {
-    simulation = new WebSimulation()
+    simulation = new WebSimulation({ seed: TEST_SEED })
   })
 
   afterEach(() => {

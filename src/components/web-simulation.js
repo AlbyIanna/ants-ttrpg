@@ -1,12 +1,31 @@
 /**
  * Browser-Adapted Live Simulation Engine for Ant Colony TTRPG
- * Version: v0.5 - ES6 Module Version
+ * Version: v0.7 - Seeded Edition
+ * Changelog:
+ *   v0.7 - All randomness goes through a seeded generator (this.random, see
+ *          random.js); worlds are reproducible from state.seed / config.seed.
+ *          Distributed nest placement floors its margin (fractional nest
+ *          coordinates crashed moveAnt on Small worlds).
+ *          Ants follow pheromone trails: moveAntRandomly asks
+ *          influenceAntMovement for a trail step from the current cell and
+ *          takes it, skipping the cell the ant just left.
  */
 
 import { Utils } from './utils.js';
+import { createRandom, randomSeed } from './random.js';
 
 export class WebSimulation {
-  constructor() {
+  /**
+   * @param {object} [options]
+   * @param {number} [options.seed] - fixed seed for every world this instance
+   *   generates (tests); a world's own `config.seed` takes precedence.
+   */
+  constructor(options = {}) {
+    // Seeded randomness: every random choice in the simulation goes through this.random
+    this.defaultSeed = options.seed;
+    this.seed = options.seed ?? randomSeed();
+    this.random = createRandom(this.seed);
+
     // Real-time simulation settings
     this.isRunning = false;
     this.isPaused = false;
@@ -113,14 +132,14 @@ export class WebSimulation {
         const baseArea = 75 * 50; // Default world area
         const currentArea = width * height;
         const areaRatio = currentArea / baseArea;
-        const baseFoodCount = Utils.randomInt(7, 12);
+        const baseFoodCount = this.random.int(7, 12);
         // Use linear scaling for better proportionality but cap growth
         const scaledFoodCount = Math.floor(baseFoodCount * Math.min(areaRatio, 10));
         
         this.addFoodSources(environment, Math.max(3, scaledFoodCount));
         
         // Add hazards (scale with world size)
-        const baseHazardCount = Utils.randomInt(1, 4);
+        const baseHazardCount = this.random.int(1, 4);
         const scaledHazardCount = Math.floor(baseHazardCount * Math.sqrt(areaRatio));
         this.addHazards(environment, Math.max(1, scaledHazardCount));
         
@@ -243,8 +262,8 @@ export class WebSimulation {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         // Randomly change biome based on randomness factor
-        if (Math.random() < randomness) {
-          currentBiome = biomeTypes[Math.floor(Math.random() * biomeTypes.length)];
+        if (this.random.next() < randomness) {
+          currentBiome = biomeTypes[Math.floor(this.random.next() * biomeTypes.length)];
         }
         biomeMap[y][x] = currentBiome;
       }
@@ -299,7 +318,7 @@ export class WebSimulation {
     }
     
     // Random terrain based on biome
-    const random = Math.random();
+    const random = this.random.next();
     switch (biome) {
       case 'forest_floor':
         if (random < 0.1) return '🪨';
@@ -335,8 +354,8 @@ export class WebSimulation {
       
       // Find valid position
       do {
-        x = Utils.randomInt(3, width - 4);
-        y = Utils.randomInt(3, height - 4);
+        x = this.random.int(3, width - 4);
+        y = this.random.int(3, height - 4);
         attempts++;
         
         // Avoid nest area and walls
@@ -349,17 +368,17 @@ export class WebSimulation {
       
       if (attempts < 50) {
         const foodTypes = ['berries', 'seeds', 'nectar', 'wood'];
-        const type = Utils.randomChoice(foodTypes);
+        const type = this.random.choice(foodTypes);
         
         environment.foodSources.push({
           x: x,
           y: y,
           type: type,
-          nutrition: Utils.randomInt(15, 35),
-          maxNutrition: Utils.randomInt(25, 45),
-          discovered: Math.random() < 0.3, // 30% chance initially discovered
+          nutrition: this.random.int(15, 35),
+          maxNutrition: this.random.int(25, 45),
+          discovered: this.random.next() < 0.3, // 30% chance initially discovered
           depleted: false,
-          regenerationRate: Utils.randomFloat(0.1, 0.3)
+          regenerationRate: this.random.float(0.1, 0.3)
         });
       }
     }
@@ -372,17 +391,17 @@ export class WebSimulation {
     const { width, height } = environment.metadata;
     
     for (let i = 0; i < count; i++) {
-      const x = Utils.randomInt(2, width - 3);
-      const y = Utils.randomInt(2, height - 3);
+      const x = this.random.int(2, width - 3);
+      const y = this.random.int(2, height - 3);
       
       if (environment.terrain[y][x] === '.') {
         environment.hazards.push({
           x: x,
           y: y,
           type: 'predator',
-          severity: Utils.randomFloat(0.5, 2.0),
-          active: Math.random() < 0.6,
-          duration: Utils.randomInt(10, 30)
+          severity: this.random.float(0.5, 2.0),
+          active: this.random.next() < 0.6,
+          duration: this.random.int(10, 30)
         });
       }
     }
@@ -442,6 +461,14 @@ export class WebSimulation {
    */
   async initializeColony(biome = 'forest_floor', config = {}) {
     Utils.performance.start('colonyInit');
+
+    // Each world starts its own random sequence: config.seed (a saved world),
+    // else the seed given to the constructor (tests), else a fresh one.
+    this.seed = (config.seed ?? this.defaultSeed ?? randomSeed()) >>> 0;
+    this.random = createRandom(this.seed);
+
+    // A new world starts its own clock (the HUD showed the previous world's time)
+    this.elapsedTime = 0;
     
     // Determine world dimensions
     const dimensions = this.getWorldDimensions(config);
@@ -528,6 +555,7 @@ export class WebSimulation {
         soldiers: ants.filter(a => a.role === 'soldier').length
       },
       biome: biome,
+      seed: this.seed, // rebuilds this exact world when passed back as config.seed
       recentMovements: [],
       recentDiscoveries: [],
       nestPosition: nests[0].position, // Legacy compatibility
@@ -605,7 +633,7 @@ export class WebSimulation {
   /**
    * Update simulation state
    */
-  update(deltaTime) {
+  update(deltaTime = this.updateInterval) {
     if (!this.state) return;
     
     Utils.performance.start('simulationUpdate');
@@ -802,10 +830,10 @@ export class WebSimulation {
     if (ant.stateTimer <= 0) {
       switch (ant.state) {
         case 'foraging':
-          ant.state = Math.random() < 0.7 ? 'foraging' : 'exploring';
+          ant.state = this.random.next() < 0.7 ? 'foraging' : 'exploring';
           break;
         case 'exploring':
-          ant.state = Math.random() < 0.6 ? 'exploring' : 'foraging';
+          ant.state = this.random.next() < 0.6 ? 'exploring' : 'foraging';
           break;
         default:
           ant.state = ant.role === 'worker' ? 'foraging' : 'exploring';
@@ -836,8 +864,22 @@ export class WebSimulation {
    * Move ant randomly
    */
   moveAntRandomly(ant) {
+    // Look for a trail from where the ant stands now; a trail step wins over a random one
+    const environment = this.state?.environment;
+    if (environment?.pheromoneMap && environment.metadata?.pheromoneSystem) {
+      this.influenceAntMovement(ant, environment, environment.metadata.pheromoneSystem);
+    }
+    if (ant.targetPosition) {
+      const target = ant.targetPosition;
+      ant.targetPosition = null;
+      if (target.x !== ant.position.x || target.y !== ant.position.y) {
+        this.moveAntToward(ant, target);
+        return;
+      }
+    }
+
     const directions = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
-    const [dx, dy] = Utils.randomChoice(directions);
+    const [dx, dy] = this.random.choice(directions);
     this.moveAnt(ant, dx, dy);
   }
 
@@ -862,6 +904,8 @@ export class WebSimulation {
         to: { x: newX, y: newY }
       });
       
+      // Remember where the ant came from, so trail-following doesn't send it straight back
+      ant.previousPosition = { x: ant.position.x, y: ant.position.y };
       ant.position.x = newX;
       ant.position.y = newY;
       
@@ -927,7 +971,7 @@ export class WebSimulation {
       this.state.food = 0;
       
       // Some ants may die from starvation if food shortage is severe
-      if (foodShortage > 2 && Math.random() < 0.1) {
+      if (foodShortage > 2 && this.random.next() < 0.1) {
         this.killRandomAnt('starvation');
       }
     }
@@ -949,13 +993,13 @@ export class WebSimulation {
     // Birth chance increases with food and decreases with population pressure
     const birthChance = Math.min(0.05, foodRatio * populationPressure * (deltaTime / 1000));
     
-    if (Math.random() < birthChance && currentPopulation < maxPop && this.state.food > 10) {
+    if (this.random.next() < birthChance && currentPopulation < maxPop && this.state.food > 10) {
       this.birthNewAnt();
     }
     
     // Natural death rate (very low)
     const deathChance = 0.001 * (deltaTime / 1000);
-    if (Math.random() < deathChance && currentPopulation > 5) {
+    if (this.random.next() < deathChance && currentPopulation > 5) {
       this.killRandomAnt('natural');
     }
     
@@ -991,7 +1035,7 @@ export class WebSimulation {
   killRandomAnt(cause = 'unknown') {
     const livingAnts = this.state.ants.filter(ant => !ant.isDead);
     if (livingAnts.length > 0) {
-      const victimIndex = Math.floor(Math.random() * livingAnts.length);
+      const victimIndex = Math.floor(this.random.next() * livingAnts.length);
       const victim = livingAnts[victimIndex];
       victim.isDead = true;
       
@@ -1135,7 +1179,7 @@ export class WebSimulation {
     this.state.environment.foodAbundance = Utils.clamp(abundance, 0.1, 3.0);
     
     // Optionally add more food sources if abundance increased significantly
-    if (abundance > 1.5 && Math.random() < 0.3) {
+    if (abundance > 1.5 && this.random.next() < 0.3) {
       this.addFoodSources(this.state.environment, Math.floor(abundance));
     }
   }
@@ -1281,35 +1325,35 @@ export class WebSimulation {
     let startX, startY, endX, endY;
     
     // Start from edges
-    const edge = Math.random();
+    const edge = this.random.next();
     if (edge < 0.25) { // Top edge
-      startX = Utils.randomInt(1, width - 2);
+      startX = this.random.int(1, width - 2);
       startY = 1;
     } else if (edge < 0.5) { // Right edge
       startX = width - 2;
-      startY = Utils.randomInt(1, height - 2);
+      startY = this.random.int(1, height - 2);
     } else if (edge < 0.75) { // Bottom edge
-      startX = Utils.randomInt(1, width - 2);
+      startX = this.random.int(1, width - 2);
       startY = height - 2;
     } else { // Left edge
       startX = 1;
-      startY = Utils.randomInt(1, height - 2);
+      startY = this.random.int(1, height - 2);
     }
     
     // End at opposite or adjacent edge
     const oppositeEdge = (edge + 0.5) % 1;
     if (oppositeEdge < 0.25) {
-      endX = Utils.randomInt(1, width - 2);
+      endX = this.random.int(1, width - 2);
       endY = 1;
     } else if (oppositeEdge < 0.5) {
       endX = width - 2;
-      endY = Utils.randomInt(1, height - 2);
+      endY = this.random.int(1, height - 2);
     } else if (oppositeEdge < 0.75) {
-      endX = Utils.randomInt(1, width - 2);
+      endX = this.random.int(1, width - 2);
       endY = height - 2;
     } else {
       endX = 1;
-      endY = Utils.randomInt(1, height - 2);
+      endY = this.random.int(1, height - 2);
     }
     
     // Generate path using simple pathfinding
@@ -1350,7 +1394,7 @@ export class WebSimulation {
       let moveX = 0, moveY = 0;
       
       // Add some randomness to create natural curves
-      if (Math.random() < 0.7) { // 70% chance to move toward target
+      if (this.random.next() < 0.7) { // 70% chance to move toward target
         if (Math.abs(dx) > Math.abs(dy)) {
           moveX = dx > 0 ? 1 : -1;
         } else {
@@ -1364,7 +1408,7 @@ export class WebSimulation {
         if (currentY < height - 2) directions.push([0, 1]);
         
         if (directions.length > 0) {
-          const randomDir = directions[Math.floor(Math.random() * directions.length)];
+          const randomDir = directions[Math.floor(this.random.next() * directions.length)];
           moveX = randomDir[0];
           moveY = randomDir[1];
         }
@@ -1410,8 +1454,8 @@ export class WebSimulation {
    */
   generateMountainRange(terrain, width, height, mountainSize) {
     // Choose random center point away from edges and nest
-    const centerX = Utils.randomInt(mountainSize.maxRadius, width - mountainSize.maxRadius);
-    const centerY = Utils.randomInt(mountainSize.maxRadius, height - mountainSize.maxRadius);
+    const centerX = this.random.int(mountainSize.maxRadius, width - mountainSize.maxRadius);
+    const centerY = this.random.int(mountainSize.maxRadius, height - mountainSize.maxRadius);
     
     // Avoid nest area
     const nestX = Math.floor(width / 2);
@@ -1421,7 +1465,7 @@ export class WebSimulation {
       return this.generateMountainRange(terrain, width, height, mountainSize);
     }
     
-    const radius = Utils.randomInt(mountainSize.minRadius, mountainSize.maxRadius);
+    const radius = this.random.int(mountainSize.minRadius, mountainSize.maxRadius);
     
     // Create mountain cluster
     for (let y = centerY - radius; y <= centerY + radius; y++) {
@@ -1430,7 +1474,7 @@ export class WebSimulation {
           const distance = Utils.distance(x, y, centerX, centerY);
           const probability = Math.max(0, (radius - distance) / radius) * mountainSize.density;
           
-          if (Math.random() < probability && terrain[y][x] !== '🏠' && terrain[y][x] !== '🌊') {
+          if (this.random.next() < probability && terrain[y][x] !== '🏠' && terrain[y][x] !== '🌊') {
             terrain[y][x] = '⛰️';
           }
         }
@@ -1455,8 +1499,8 @@ export class WebSimulation {
    */
   generateForestPatch(terrain, width, height, density) {
     // Choose random center point
-    const centerX = Utils.randomInt(5, width - 5);
-    const centerY = Utils.randomInt(5, height - 5);
+    const centerX = this.random.int(5, width - 5);
+    const centerY = this.random.int(5, height - 5);
     
     // Avoid nest area
     const nestX = Math.floor(width / 2);
@@ -1466,7 +1510,7 @@ export class WebSimulation {
       return this.generateForestPatch(terrain, width, height, density);
     }
     
-    const patchSize = Utils.randomInt(8, 12);
+    const patchSize = this.random.int(8, 12);
     
     // Create forest patch using organic growth pattern
     const forestCells = new Set();
@@ -1493,7 +1537,7 @@ export class WebSimulation {
           const distance = Utils.distance(neighbor.x, neighbor.y, centerX, centerY);
           const probability = Math.max(0, (patchSize - distance) / patchSize) * density;
           
-          if (Math.random() < probability) {
+          if (this.random.next() < probability) {
             forestCells.add(key);
             queue.push(neighbor);
           }
@@ -1611,8 +1655,8 @@ export class WebSimulation {
     
     // If more nests needed, place randomly
     while (positions.length < nestCount) {
-      const x = Utils.randomInt(margin, width - margin);
-      const y = Utils.randomInt(margin, height - margin);
+      const x = this.random.int(margin, width - margin);
+      const y = this.random.int(margin, height - margin);
       positions.push({ x, y });
     }
     
@@ -1646,7 +1690,9 @@ export class WebSimulation {
    */
   generateDistributedNestPositions(width, height, nestCount, minDistance) {
     const positions = [];
-    const margin = Math.min(width, height) * 0.1; // 10% margin
+    // 10% margin, floored: a fractional margin made randomInt() return
+    // fractional nest coordinates (e.g. 74.5), which crashed moveAnt()
+    const margin = Math.floor(Math.min(width, height) * 0.1);
     const maxAttempts = 100;
     
     for (let i = 0; i < nestCount; i++) {
@@ -1654,8 +1700,8 @@ export class WebSimulation {
       let attempts = 0;
       
       do {
-        const x = Utils.randomInt(margin, width - margin);
-        const y = Utils.randomInt(margin, height - margin);
+        const x = this.random.int(margin, width - margin);
+        const y = this.random.int(margin, height - margin);
         position = { x, y };
         
         // Check minimum distance from existing nests
@@ -1674,8 +1720,8 @@ export class WebSimulation {
       
       // If couldn't find valid position, place anyway with reduced distance
       if (!position) {
-        const x = Utils.randomInt(margin, width - margin);
-        const y = Utils.randomInt(margin, height - margin);
+        const x = this.random.int(margin, width - margin);
+        const y = this.random.int(margin, height - margin);
         position = { x, y };
       }
       
@@ -1868,10 +1914,8 @@ export class WebSimulation {
       this.layPheromones(ant, environment, config);
     });
     
-    // Update ant pathfinding based on pheromones
-    this.state.ants.forEach(ant => {
-      this.influenceAntMovement(ant, environment, config);
-    });
+    // Trail-following is decided at step time, in moveAntRandomly(), from the
+    // ant's current position (deciding here, after the move, lagged one tick).
   }
 
   /**
@@ -1953,14 +1997,17 @@ export class WebSimulation {
       case 'returning':
         pheromoneAmount = trailStrength * (config.strengthMultipliers?.food || 1.5);
         break;
+      // Wandering ants leave only a faint scent, under the 0.1 that
+      // influenceAntMovement follows, so ants don't trail their own footsteps;
+      // the strong trail is the one laid by ants bringing food home.
       case 'exploring':
-        pheromoneAmount = trailStrength * (config.strengthMultipliers?.exploration || 0.5);
+        pheromoneAmount = trailStrength * (config.strengthMultipliers?.exploration ?? 0.05);
         break;
       case 'foraging':
-        pheromoneAmount = trailStrength * 1.0;
+        pheromoneAmount = trailStrength * (config.strengthMultipliers?.foraging ?? 0.05);
         break;
       default:
-        pheromoneAmount = trailStrength * 0.3;
+        pheromoneAmount = trailStrength * 0.05;
     }
     
     // Lay pheromones in main map
@@ -2000,14 +2047,21 @@ export class WebSimulation {
    * Influence ant movement based on pheromone trails
    */
   influenceAntMovement(ant, environment, config) {
-    if (!config.pathfindingWeight || ant.state === 'resting') return;
+    // Trails pull ants that wander (foraging, exploring); returning ants head
+    // straight home and resting ants stay put. pathfindingWeight scales the pull
+    // (default 1; 0 turns trail-following off).
+    const weight = config.pathfindingWeight ?? 1;
+    if (weight <= 0 || ant.state === 'resting' || ant.state === 'returning') {
+      ant.targetPosition = null;
+      return;
+    }
     
     const { x, y } = ant.position;
     const { width, height } = environment.metadata;
     const followProbability = config.followProbability || 0.7;
     
     // Random chance to ignore pheromones (exploration vs exploitation)
-    if (Math.random() > followProbability) return;
+    if (this.random.next() > followProbability) return;
     
     // Find direction with strongest pheromone gradient
     const directions = [
@@ -2023,8 +2077,14 @@ export class WebSimulation {
       const nx = x + dir.dx;
       const ny = y + dir.dy;
       
-      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-        let strength = environment.pheromoneMap[ny][nx];
+      const cameFrom = ant.previousPosition && nx === ant.previousPosition.x && ny === ant.previousPosition.y;
+      // Only cells the ant can enter: a trail cell on rock would win every time and pin the ant
+      const walkable = nx >= 0 && nx < width && ny >= 0 && ny < height &&
+        environment.terrain[ny][nx] !== '🪨' && environment.terrain[ny][nx] !== '🏔';
+      if (!cameFrom && walkable) {
+        // With per-colony maps the shared map is everyone's scent: steer by the
+        // colony maps below instead, so rivals don't follow each other's trails
+        let strength = environment.pheromoneByColony ? 0 : environment.pheromoneMap[ny][nx];
         
         // Boost strength for relevant pheromone types
         if (environment.pheromoneTypes) {
@@ -2053,7 +2113,8 @@ export class WebSimulation {
           });
         }
         
-        if (strength > bestStrength) {
+        // Break ties at random: a fixed scan order always favoured up-left
+        if (strength > bestStrength || (strength > 0 && strength === bestStrength && this.random.next() < 0.5)) {
           bestStrength = strength;
           bestDirection = dir;
         }
@@ -2067,7 +2128,7 @@ export class WebSimulation {
       const newY = Utils.clamp(y + bestDirection.dy, 0, height - 1);
       
       // Set or modify ant's target position based on pheromone influence
-      if (Math.random() < influence * 0.5) {
+      if (this.random.next() < Math.min(1, influence * 0.5 * weight)) {
         ant.targetPosition = { x: newX, y: newY };
       }
     }

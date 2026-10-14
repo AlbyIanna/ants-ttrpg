@@ -1,5 +1,51 @@
 # Release Notes
 
+## prototype-v0.7 - Underground UI Edition (unreleased)
+
+### Visual redesign
+Implements the "Ant Colony TTRPG — UI Design" canvas (title menu, world creation, in-game HUD).
+- **Design tokens**: dark soil palette, parchment text, amber for food and actions; Pixelify Sans (display), IBM Plex Sans (body), IBM Plex Mono (numbers). Emoji replaced by inline SVG icons.
+- **Role colours**: workers parchment, scouts sky blue, soldiers brick, rival colonies violet; they also differ in lightness for colour-blind players.
+- **Title screen**: pixel-art nest cross-section, resume button naming the last world, recent-world cards with map thumbnails, keyboard shortcuts (Enter / N / L / S).
+- **World creation**: full screen instead of a modal; card choices for size, biome, food, hazards, season and time scale; nest count (1-4); role split with +/- steppers that always total 100%; live preview map and summary.
+- **HUD**: top bar with season, elapsed time, play/pause and speed presets (0.5x-20x); Layers chips (Terrain, Pheromone trails, Behaviour states, Territory); zoom buttons; side panel with population, role split, food, morale and every colony on the map; colony log (the existing activity feed); Spawn food and Reset colony.
+
+### GameMaster turn screen
+Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live colony, opened from the new **GameMaster** button in the HUD top bar (back arrow, Escape or "Watch the colony live" returns to the map; the simulation is not touched).
+- **Scenario card**: loaded from `narrative/scenario-templates.json` (`opening_scenarios`). Spring/summer worlds play *The Bird's Shadow* (grow to 15 ants), autumn/winter worlds play *The Coming Winter* (last 10 turns with at least 10 ants). Goal progress bar and special-rule chips.
+- **Colony panel**: food, ants, morale, workers/scouts/soldiers (split by the world's role ratios) and 3 energy pips; energy refills by 1 each turn.
+- **Story feed**: scenario setup, action flavour text (`action_flavors`), events and discoveries (`event_expansions`) and colony status lines (`status_messages`), each with its outcome.
+- **Action cards**: forage, explore, defend, rest from `rules/action-schema.json`, with needs, effect, risk and success chance. Cards whose requirements are not met are disabled and say why.
+- **Your own plan**: free text put to the GameMaster as a 50% roll (1 energy, morale +1 on success, -1 on failure).
+- **Resolution**: a visible d100 roll-under against `success_rate`, dice effects such as `1d6+2` rolled and shown ("Food +6 (1d6+2: 4 + 2)"). Failed forage triggers a predator encounter (1d2 ants, reduced by defence); failed explore loses the scouts for a turn; *increased predator encounters* adds a 15% ambush on successful forays.
+- **Next turn**: the colony eats one food per four ants (doubled after turn 5 in winter); hungry colonies lose ants and morale, well-fed ones hatch a worker. Win and loss end the game with a "Play again".
+- **Deterministic**: every roll comes from the seeded `rng()` in `pixel-art.js` (seed = world id + play number).
+
+### New modules
+- `src/components/game-master-rules.js` - pure turn rules (dice, d100 checks, requirements, effects, upkeep, goals); 32 tests in `game-master-rules.test.js`.
+- `src/components/game-master.js` - GameMaster screen rendering and input.
+- `src/components/pixel-art.js` - shared palette, seeded RNG and pixel illustrations.
+- `src/components/world-form.js` - world-creation behaviour; `rebalanceRoles()` is unit-tested in `world-form.test.js`.
+
+### Behaviour changes
+- New worlds pass `nestCount` and enable the pheromone system, so multiple colonies and trails now run from the UI.
+- Fix: `generateDistributedNestPositions` (the default placement) now floors its margin. On Small worlds (75 cells high, so a 7.5-cell margin) two or more nests got fractional coordinates such as 74.5 and crashed `moveAnt()`; the other sizes give whole-number margins. **Core simulation change - needs human review.**
+- Seeded randomness: every random choice in `WebSimulation` goes through one seeded generator (`src/components/random.js`). A world's seed is stored in `state.seed` and in the saved world config, so Resume and Load rebuild the same map. **Core simulation change - needs human review.**
+- **Ants follow pheromone trails.** `influenceAntMovement()` already picked the strongest neighbouring trail cell, but nothing used the result. Now `moveAntRandomly()` asks for a trail step from the ant's current cell and takes it; it skips the cell the ant just left (no shuffling back and forth) and cells it cannot enter (a trail on rock pinned ants), and breaks ties at random (the fixed scan order always favoured up-left). Returning ants still head straight home. On by default; `pathfindingWeight: 0` turns it off. **Core gameplay change - needs human review.**
+- Review fixes: game worlds now set `decayRate: 0.05` (trails used to never fade) and `colonySpecific: true` (rivals steer by their own trails only). Wandering ants leave only a faint scent below the follow threshold; strong trails come from ants carrying food home. Measured over 300 updates: 619 cells explored with trail-following versus 538 for a random walk (285 before this fix), and 4 saturated trail cells instead of 130. `update()` with no argument advances one normal tick (timers were NaN). The map keeps the player's pan when the HUD resizes; Space no longer runs the simulation behind the title menu.
+- Ants glide from cell to cell over one tick instead of jumping (display only; the simulation still ticks every 800 ms at 1x). The static map layer is cached offscreen, so animation frames only copy it and draw ants. Off under `prefers-reduced-motion`. Pan and zoom redraw immediately instead of waiting for the next tick. The FPS counter now counts real frames.
+- Trail tests rewritten to test the mechanism: ten ants on parallel trails (measured over 200 seeds: 48-89 steps on a trail when following, 5-35 for a random walk; the test asserts at least 40), a gradient-climbing ant, and recruitment (a worker carrying food lays a trail home; a forager next to it steps onto it).
+- Simulation tests run with a fixed seed (override with `TEST_SEED=n npx vitest run`). The pheromone decay and evaporation tests now use a corner cell instead of the nest cell, where ants kept laying fresh trail; both pass on 20 of 20 seeds.
+- Fix: role-split normalisation no longer runs on every input event, which corrupted preset values mid-update.
+- Renderer repaints after a resize, so a paused world no longer goes blank.
+
+### Known issues
+- A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
+- `resourceDistribution: 'contested'` is not implemented anywhere in the simulation; the "contested resource zones" test passes only when random food lands in a neutral zone (it fails on about 7-10% of seeds; the default seed passes). Needs a decision, like trail-following did.
+- Rare seed-dependent failures remain: "dense forest areas" (2 of 201 seeds), "recruitment" (1), "stronger trails last longer" (1). Render-timing tests can fail under heavy machine load.
+- Fixed two tests that failed on every run because of mistakes in the tests: the single-nest test now expects the floored centre cell, and the pheromones-disabled test no longer compares food counts of two random worlds.
+- The GameMaster session is not saved with the world and does not feed back into the live simulation; it resets on page reload.
+
 ## prototype-v0.6 - Configurable Worlds Edition (2025-09-12)
 
 ### 🎯 Major Feature: Complete World Management System

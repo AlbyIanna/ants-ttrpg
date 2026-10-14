@@ -4,7 +4,16 @@
  * 
  * Based on the turmites-main reference implementation
  * Focuses on performance and simplicity over complex features
+ * Changelog:
+ *   v0.7.1 - Underground UI palette, ants coloured by role / behaviour state,
+ *            rival colonies in violet, pheromone-trail and territory overlays,
+ *            nest rings, Terrain layer toggle, zoomBy() and auto-resize.
+ *   v0.7.2 - Ants glide between cells over one tick (simulation unchanged);
+ *            static layer cached offscreen, so frames only copy it and draw
+ *            ants. Off under prefers-reduced-motion. FPS counts real frames.
  */
+
+import { PALETTE, STATE_COLORS } from './pixel-art.js';
 
 export class SimpleRenderer {
   constructor() {
@@ -29,17 +38,38 @@ export class SimpleRenderer {
     this.cellsToUpdate = new Set(); // Track cells that need redrawing
     this.needsFullRedraw = true;
     
-    // Color palette - simple and clear
+    // Color palette - shared with the UI (see pixel-art.js)
     this.colors = {
-      background: '#000000',    // Black background
-      empty: '#111111',         // Dark gray for empty space
-      nest: '#FFD700',          // Gold for nest
-      ant: '#FF0000',           // Red for ants
-      food: '#00FF00',          // Green for food
-      trail: '#444444',         // Gray for trails
-      rock: '#666666',          // Gray for obstacles
-      grass: '#004400'          // Dark green for grass
+      background: PALETTE.ground,
+      soil: PALETTE.soil,
+      nest: PALETTE.nest,
+      food: PALETTE.amber,
+      trail: PALETTE.amber,
+      rock: PALETTE.rock[0],
+      grass: PALETTE.grass[1],
+      water: PALETTE.water[0],
+      mountain: '#5A4532',
+      tree: PALETTE.grass[0],
+      desertRock: PALETTE.rock[1],
+      roles: { worker: PALETTE.worker, scout: PALETTE.scout, soldier: PALETTE.soldier },
+      rival: PALETTE.rival,
+      homeRing: PALETTE.worker
     };
+
+    // Gliding ants: per-ant track from the last cell to the new one
+    this.tracks = new Map();
+    this.tickStart = 0;
+    this.lastTickAt = 0;
+    this.tickDuration = 800;
+    this.reduceMotion = typeof window !== 'undefined' &&
+      !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    // Layer toggles (driven by the HUD's Layers chips)
+    this.showTrails = true;
+    this.showBehaviorStates = false;
+    this.showEnvironmentDetails = true;
+    this.showTerritory = false;
+    this.mixCache = new Map();
     
     // Performance tracking
     this.fps = 0;
@@ -79,7 +109,15 @@ export class SimpleRenderer {
     
     // Set up mouse controls for pan/zoom
     this.setupControls();
-    
+
+    // Keep the canvas matched to its (flexible) container
+    if (typeof ResizeObserver !== 'undefined' && this.canvas.parentElement) {
+      this.resizeObserver = new ResizeObserver(() => this.handleResize());
+      this.resizeObserver.observe(this.canvas.parentElement);
+    } else if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => this.handleResize());
+    }
+
     console.log('✅ SimpleRenderer initialized successfully');
   }
   
@@ -157,6 +195,7 @@ export class SimpleRenderer {
       lastMouseY = e.clientY;
       
       this.needsFullRedraw = true;
+      this.requestRedraw();
     });
     
     // Mouse up - stop dragging
@@ -188,6 +227,7 @@ export class SimpleRenderer {
         
         this.scale = newScale;
         this.needsFullRedraw = true;
+        this.requestRedraw();
       }
     });
     
@@ -199,7 +239,8 @@ export class SimpleRenderer {
    */
   render(state, stats = {}) {
     if (!this.ctx || !state) return;
-    
+    this.lastState = state;
+
     const startTime = performance.now();
     
     // Update world dimensions if changed
@@ -214,23 +255,129 @@ export class SimpleRenderer {
       }
     }
     
-    // Decide between full redraw or differential update
-    if (this.needsFullRedraw) {
-      this.drawFull(state);
-      this.needsFullRedraw = false;
-    } else {
-      this.drawUpdates(state);
+    // Ants glide between ticks: note who moved, then repaint the static
+    // layer (terrain, overlays, nests, food) once and animate ants over it
+    this.trackAnts(state);
+    this.drawFull(state);
+    this.needsFullRedraw = false;
+    this.lastRenderTime = performance.now() - startTime;
+  }
+
+  /**
+   * Record each ant's move since the last tick. A new tick starts a glide from
+   * where the ant is drawn now to its new cell, over one tick's duration.
+   * Renders without movement (pan, zoom, layer toggles) leave glides alone.
+   */
+  trackAnts(state) {
+    const now = performance.now();
+    const progress = this.glideProgress(now);
+    const seen = new Set();
+    let moved = false;
+
+    (state.ants || []).forEach(ant => {
+      const { x, y } = ant.position;
+      seen.add(ant.id);
+      const track = this.tracks.get(ant.id);
+      if (!track) {
+        this.tracks.set(ant.id, { fx: x, fy: y, tx: x, ty: y });
+      } else if (track.tx !== x || track.ty !== y) {
+        // Start from the drawn position; snap jumps longer than one cell (births, teleports)
+        const jumped = Math.abs(x - track.tx) > 1.5 || Math.abs(y - track.ty) > 1.5;
+        track.fx = jumped ? x : track.fx + (track.tx - track.fx) * progress;
+        track.fy = jumped ? y : track.fy + (track.ty - track.fy) * progress;
+        track.tx = x;
+        track.ty = y;
+        track.tick = now;
+        moved = true;
+      }
+    });
+    for (const id of this.tracks.keys()) {
+      if (!seen.has(id)) this.tracks.delete(id);
     }
-    
-    // Update performance stats
-    const renderTime = performance.now() - startTime;
-    this.updatePerformanceStats(renderTime);
+
+    if (moved) {
+      // Ants that stood still this tick finish where they are
+      this.tracks.forEach(track => {
+        if (track.tick !== now) { track.fx = track.tx; track.fy = track.ty; }
+      });
+      // Glide for as long as a tick lasts (800 ms at 1x, shorter when sped up)
+      if (this.lastTickAt) {
+        this.tickDuration = Math.max(60, Math.min(1000, now - this.lastTickAt));
+      }
+      this.lastTickAt = now;
+      this.tickStart = now;
+    }
+  }
+
+  /**
+   * When no frame is drawn for a second (paused, or nothing moved), show
+   * "— FPS" instead of a stale number; a fresh count starts with the next frame.
+   */
+  markFpsIdleLater() {
+    if (typeof setTimeout === 'undefined') return;
+    clearTimeout(this.fpsIdleTimer);
+    this.fpsIdleTimer = setTimeout(() => {
+      this.frameCount = 0;
+      this.lastFPSUpdate = Date.now();
+      const fpsElement = typeof document !== 'undefined' && document.getElementById('fps');
+      if (fpsElement) fpsElement.textContent = '— FPS';
+    }, 1000);
+  }
+
+  /** 0 at the start of a tick's glide, 1 when ants reach their cells. */
+  glideProgress(now) {
+    if (this.reduceMotion || !this.tickStart) return 1;
+    return Math.max(0, Math.min(1, (now - this.tickStart) / this.tickDuration));
+  }
+
+  /**
+   * Paint one frame: the cached static layer, then ants at their glide
+   * position. Keeps requesting frames until every glide has finished.
+   */
+  present() {
+    const now = performance.now();
+    if (this.background) {
+      this.ctx.drawImage(this.background, 0, 0);
+    }
+    const progress = this.glideProgress(now);
+    const size = Math.ceil(this.scale);
+    (this.lastState?.ants || []).forEach(ant => {
+      const track = this.tracks.get(ant.id);
+      const wx = track ? track.fx + (track.tx - track.fx) * progress : ant.position.x;
+      const wy = track ? track.fy + (track.ty - track.fy) * progress : ant.position.y;
+      const px = Math.round(this.offsetX + wx * this.scale);
+      const py = Math.round(this.offsetY + wy * this.scale);
+      if (px + size > 0 && px < this.canvasWidth && py + size > 0 && py < this.canvasHeight) {
+        this.ctx.fillStyle = this.antColor(ant);
+        this.ctx.fillRect(px, py, size, size);
+      }
+    });
+    this.updatePerformanceStats(this.lastRenderTime || 0);
+    this.markFpsIdleLater();
+
+    if (progress < 1 && !this.framePending) {
+      this.framePending = true;
+      requestAnimationFrame(() => {
+        this.framePending = false;
+        this.present();
+      });
+    }
   }
   
   /**
    * Full redraw - used when view changes or world resets
    */
   drawFull(state) {
+    // Static layer goes to an offscreen canvas, so animation frames only copy it
+    if (typeof document !== 'undefined') {
+      if (!this.background) this.background = document.createElement('canvas');
+      if (this.background.width !== this.canvasWidth) this.background.width = this.canvasWidth;
+      if (this.background.height !== this.canvasHeight) this.background.height = this.canvasHeight;
+    }
+    const screen = this.ctx;
+    const bgCtx = this.background?.getContext?.('2d');
+    if (bgCtx) this.ctx = bgCtx;
+
     // Clear canvas
     this.ctx.fillStyle = this.colors.background;
     this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
@@ -238,14 +385,22 @@ export class SimpleRenderer {
     // Calculate visible bounds
     const bounds = this.getVisibleBounds();
     
-    // Draw terrain/background
+    // Draw terrain/background (with trail and territory overlays)
     this.drawTerrain(state, bounds);
-    
+
+    // Nest rings: yours in parchment, rivals in violet
+    this.drawNests(state, bounds);
+
     // Draw food sources
     this.drawFood(state, bounds);
-    
-    // Draw ants
-    this.drawAnts(state, bounds);
+
+    this.ctx = screen;
+    if (bgCtx) {
+      // Ants are drawn per frame, at their glide position
+      this.present();
+    } else {
+      this.drawAnts(state, bounds);
+    }
     
     // Clear update set since we drew everything
     this.cellsToUpdate.clear();
@@ -279,29 +434,100 @@ export class SimpleRenderer {
     if (!state.environment?.terrain) return;
     
     const terrain = state.environment.terrain;
-    
+    const pheromones = this.showTrails ? state.environment.pheromoneMap : null;
+    const territory = this.showTerritory ? state.environment.territoryMap : null;
+
     for (let y = bounds.startY; y < bounds.endY; y++) {
       for (let x = bounds.startX; x < bounds.endX; x++) {
         if (y >= terrain.length || x >= terrain[y].length) continue;
-        
+
         const cell = terrain[y][x];
-        let color = this.colors.empty;
-        
-        // Map terrain types to colors
-        switch (cell) {
-          case '🏠': color = this.colors.nest; break;
-          case '🪨': color = this.colors.rock; break;
-          case '🌱': color = this.colors.grass; break;
-          case '🌊': color = '#0066CC'; break; // Blue for rivers
-          case '⛰️': color = '#8B4513'; break; // Brown for mountains  
-          case '🌲': color = '#228B22'; break; // Forest green for trees
-          case '🏔': color = '#696969'; break; // Gray for desert rocks
-          default: color = this.colors.empty; break;
+        // Stable per-cell soil grain so the ground doesn't flicker
+        const soil = this.colors.soil[(((x * 73856093) ^ (y * 19349663)) >>> 0) % this.colors.soil.length];
+        let color = soil;
+
+        // Map terrain types to colors (nests always show; the rest is the Terrain layer)
+        if (cell === '🏠') {
+          color = this.colors.nest;
+        } else if (this.showEnvironmentDetails) {
+          switch (cell) {
+            case '🪨': color = this.colors.rock; break;
+            case '🌱': color = this.colors.grass; break;
+            case '🌊': color = this.colors.water; break;
+            case '⛰️': color = this.colors.mountain; break;
+            case '🌲': color = this.colors.tree; break;
+            case '🏔': color = this.colors.desertRock; break;
+            default: break;
+          }
         }
-        
+
+        const strength = pheromones?.[y]?.[x] || 0;
+        if (strength > 0 && cell !== '🏠') {
+          color = this.mix(color, this.colors.trail, Math.min(1, strength / 2) * 0.65);
+        }
+
+        const owner = territory?.[y]?.[x];
+        if (owner !== null && owner !== undefined && owner >= 0) {
+          color = owner === 0
+            ? this.mix(color, this.colors.homeRing, 0.12)
+            : this.mix(color, this.colors.rival, 0.22);
+        }
+
         this.drawCell(x, y, color);
       }
     }
+  }
+
+  /**
+   * Draw a one-cell ring around each nest
+   */
+  drawNests(state, bounds) {
+    if (!state.nests) return;
+    state.nests.forEach((nest, i) => {
+      const { x, y } = nest.position || {};
+      if (x === undefined) return;
+      const ring = i === 0 ? this.colors.homeRing : this.colors.rival;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const cx = x + dx, cy = y + dy;
+          if (cx >= bounds.startX && cx < bounds.endX && cy >= bounds.startY && cy < bounds.endY) {
+            this.drawCell(cx, cy, ring);
+          }
+        }
+      }
+      this.drawCell(x, y, this.colors.nest);
+    });
+  }
+
+  /**
+   * Blend two #rrggbb colours (cached: the same few pairs repeat every frame)
+   */
+  mix(a, b, t) {
+    // Cache by colour, then colour, then one of 21 steps: no per-cell key strings
+    const index = Math.max(0, Math.min(20, Math.round(t * 20)));
+    let byB = this.mixCache.get(a);
+    if (!byB) { byB = new Map(); this.mixCache.set(a, byB); }
+    let steps = byB.get(b);
+    if (!steps) { steps = new Array(21); byB.set(b, steps); }
+    let out = steps[index];
+    if (!out) {
+      const step = index / 20;
+      const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+      const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+      out = '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * step).toString(16).padStart(2, '0')).join('');
+      steps[index] = out;
+    }
+    return out;
+  }
+
+  /**
+   * Colour for one ant: rivals in violet, yours by role or by behaviour state
+   */
+  antColor(ant) {
+    if (ant.colonyId && ant.colonyId !== 0) return this.colors.rival;
+    if (this.showBehaviorStates) return STATE_COLORS[ant.state] || this.colors.roles.worker;
+    return this.colors.roles[ant.role] || this.colors.roles.worker;
   }
   
   /**
@@ -327,7 +553,7 @@ export class SimpleRenderer {
     state.ants.forEach(ant => {
       if (ant.position.x >= bounds.startX && ant.position.x < bounds.endX &&
           ant.position.y >= bounds.startY && ant.position.y < bounds.endY) {
-        this.drawCell(ant.position.x, ant.position.y, this.colors.ant);
+        this.drawCell(ant.position.x, ant.position.y, this.antColor(ant));
       }
     });
   }
@@ -399,8 +625,19 @@ export class SimpleRenderer {
    * Handle window resize
    */
   handleResize() {
+    // Keep the world point at the centre of the view where it was;
+    // setupCanvas() alone recentres the world and loses the player's pan
+    const hadView = this.canvasWidth > 0 && this.lastState;
+    const centreX = (this.canvasWidth / 2 - this.offsetX) / this.scale;
+    const centreY = (this.canvasHeight / 2 - this.offsetY) / this.scale;
     this.setupCanvas();
+    if (hadView) {
+      this.offsetX = this.canvasWidth / 2 - centreX * this.scale;
+      this.offsetY = this.canvasHeight / 2 - centreY * this.scale;
+    }
     this.needsFullRedraw = true;
+    // Resizing a canvas clears it; repaint now so a paused world doesn't go blank
+    if (this.lastState) this.render(this.lastState);
   }
   
   /**
@@ -416,6 +653,34 @@ export class SimpleRenderer {
     if (options.showTrails !== undefined) this.showTrails = options.showTrails;
     if (options.showBehaviorStates !== undefined) this.showBehaviorStates = options.showBehaviorStates;
     if (options.showEnvironmentDetails !== undefined) this.showEnvironmentDetails = options.showEnvironmentDetails;
+    if (options.showTerritory !== undefined) this.showTerritory = options.showTerritory;
+    this.needsFullRedraw = true;
+  }
+
+  /**
+   * Redraw the last state on the next frame. Pan and zoom used to wait for
+   * the next simulation tick (up to 800 ms at 1x), so the map lagged the mouse.
+   */
+  requestRedraw() {
+    if (this.redrawPending || !this.lastState) return;
+    this.redrawPending = true;
+    requestAnimationFrame(() => {
+      this.redrawPending = false;
+      this.render(this.lastState);
+    });
+  }
+
+  /**
+   * Zoom around the centre of the view (HUD zoom buttons)
+   */
+  zoomBy(factor) {
+    const newScale = Math.max(0.5, Math.min(50, this.scale * factor));
+    const cx = this.canvasWidth / 2;
+    const cy = this.canvasHeight / 2;
+    this.offsetX = cx - (cx - this.offsetX) * (newScale / this.scale);
+    this.offsetY = cy - (cy - this.offsetY) * (newScale / this.scale);
+    this.scale = newScale;
+    this.needsFullRedraw = true;
   }
   
   /**

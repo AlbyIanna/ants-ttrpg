@@ -1,10 +1,28 @@
 /**
  * Menu Manager for Ant Colony TTRPG
- * Version: v0.5 - Configurable Worlds Edition
+ * Version: v0.7 - Underground UI Edition
  * Purpose: Manages main menu, world selection, and world configuration
+ * Changelog:
+ *   v0.7 - Full-page world creation driven by world-form.js, pixel-art title
+ *          screen and world thumbnails, menu keyboard shortcuts, nest count
+ *          and pheromone trails passed to the simulation; each world keeps its
+ *          random seed, so Resume / Load rebuild the same map.
  */
 
 import { Utils } from './utils.js';
+import { bindWorldForm } from './world-form.js';
+import { drawCells, nestCrossSectionCells, worldThumbCells } from './pixel-art.js';
+
+const escapeHTML = (text) => String(text ?? '').replace(/[&<>"']/g, (ch) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+));
+
+const BIOME_NAMES = {
+  forest: 'Forest floor', desert: 'Desert oasis', grassland: 'Grassland', wetland: 'Wetland', mixed: 'Mixed terrain'
+};
+const SIZE_NAMES = {
+  small: 'Small 100 × 75', medium: 'Medium 200 × 150', large: 'Large 300 × 200', huge: 'Huge 500 × 300'
+};
 
 export class MenuManager {
   constructor(app) {
@@ -75,8 +93,48 @@ export class MenuManager {
   init() {
     this.setupUI();
     this.setupEventHandlers();
+    this.setupKeyboardShortcuts();
+    this.drawTitleArt();
     this.loadSavedWorlds();
     this.showMenu();
+  }
+
+  /**
+   * Draw the nest cross-section on the title screen
+   */
+  drawTitleArt() {
+    const canvas = document.getElementById('nestCrossSection');
+    if (!canvas) return;
+    const { cols, rows, cells } = nestCrossSectionCells();
+    drawCells(canvas, cols, rows, cells);
+  }
+
+  /**
+   * Title-screen shortcuts: Enter resumes, N creates, L loads, S opens settings.
+   * Only active while the title screen itself is showing.
+   */
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      if (!this.isMenuVisible || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName) && e.key === 'Enter') return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      const overlayOpen = [this.worldConfigModal, this.loadWorldModal]
+        .some((el) => el && !el.classList.contains('hidden'));
+      if (overlayOpen) return;
+
+      const actions = {
+        Enter: 'resumeWorldBtn',
+        n: 'createWorldBtn',
+        l: 'loadWorldBtn',
+        s: 'settingsBtn'
+      };
+      const id = actions[e.key] || actions[e.key.toLowerCase?.()];
+      const btn = id && document.getElementById(id);
+      if (btn && !btn.disabled) {
+        e.preventDefault();
+        btn.click();
+      }
+    });
   }
   
   /**
@@ -231,23 +289,14 @@ export class MenuManager {
       if (workerSlider && scoutSlider && soldierSlider && 
           workerPercent && scoutPercent && soldierPercent) {
         
-        let worker = parseInt(workerSlider.value);
-        let scout = parseInt(scoutSlider.value);
-        let soldier = parseInt(soldierSlider.value);
-        
-        // Ensure total is 100%
-        const total = worker + scout + soldier;
-        if (total !== 100) {
-          const diff = 100 - total;
-          worker += Math.floor(diff * worker / total);
-          scout += Math.floor(diff * scout / total);
-          soldier = 100 - worker - scout;
-          
-          workerSlider.value = worker;
-          scoutSlider.value = scout;
-          soldierSlider.value = soldier;
-        }
-        
+        // Values are kept at 100% by world-form.js (steppers) and by the
+        // presets; createWorld() still normalises as a final safeguard.
+        // Normalising here, on every single input event, corrupted values
+        // while a preset or stepper was mid-way through updating all three.
+        const worker = parseInt(workerSlider.value);
+        const scout = parseInt(scoutSlider.value);
+        const soldier = parseInt(soldierSlider.value);
+
         workerPercent.textContent = `${worker}%`;
         scoutPercent.textContent = `${scout}%`;
         soldierPercent.textContent = `${soldier}%`;
@@ -257,6 +306,9 @@ export class MenuManager {
     if (workerSlider) workerSlider.addEventListener('input', updateRoleDistribution);
     if (scoutSlider) scoutSlider.addEventListener('input', updateRoleDistribution);
     if (soldierSlider) soldierSlider.addEventListener('input', updateRoleDistribution);
+
+    // Card choices, role steppers and the live summary/preview
+    this.worldForm = bindWorldForm(this.worldConfigForm);
   }
   
   /**
@@ -302,15 +354,21 @@ export class MenuManager {
     if (this.worldConfigModal) {
       this.worldConfigModal.classList.remove('hidden');
       this.resetConfigForm();
+      // World creation is a full screen of its own: take the title screen away
+      if (this.mainMenu) this.mainMenu.classList.add('hidden');
+      if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
     }
   }
-  
+
   /**
    * Hide world configuration modal
    */
   hideWorldConfig() {
     if (this.worldConfigModal) {
       this.worldConfigModal.classList.add('hidden');
+    }
+    if (this.mainMenu && this.isMenuVisible) {
+      this.mainMenu.classList.remove('hidden');
     }
   }
   
@@ -394,7 +452,7 @@ export class MenuManager {
     
     // Add metadata
     config.createdAt = Date.now();
-    config.version = 'v0.5';
+    config.version = 'v0.7';
     config.id = crypto.randomUUID();
     
     this.currentWorldConfig = config;
@@ -467,6 +525,11 @@ export class MenuManager {
       worldSize: config.worldSize,
       startingPopulation: config.startingPopulation,
       maxPopulation: config.maxPopulation,
+      nestCount: config.nestCount || 1,
+      seed: config.seed,
+      // decayRate: trails fade (decay only runs when it is set); colonySpecific:
+      // each colony follows its own trails, not its rivals'
+      pheromoneSystem: { enabled: true, decayRate: 0.05, colonySpecific: true },
       roleDistribution: {
         workers: config.workerRatio / 100,
         scouts: config.scoutRatio / 100,
@@ -485,12 +548,31 @@ export class MenuManager {
       Utils.updateElement('biomeType', config.biomeType.replace('_', ' ').toUpperCase());
     }
     if (config.startingSeason) {
-      Utils.updateElement('currentSeason', config.startingSeason.toUpperCase());
+      Utils.updateElement('currentSeason', config.startingSeason);
     }
+    Utils.updateElement('hudWorldName', config.worldName || 'Colony');
+    const nests = config.nestCount || 1;
+    Utils.updateElement('hudWorldMeta', [
+      BIOME_NAMES[config.biomeType] || config.biomeType,
+      SIZE_NAMES[config.worldSize] || config.worldSize,
+      nests === 1 ? '1 colony' : `${nests} colonies`
+    ].filter(Boolean).join(' · '));
     
+    // Keep the seed with the world so Resume / Load rebuild this exact map
+    // (worlds saved before v0.7 have none: they get one now, saved on next create)
+    if (config.seed === undefined && state?.seed !== undefined) {
+      config.seed = state.seed;
+    }
+
     // Mark as initialized
     this.app.isInitialized = true;
-    
+
+    // Draw the new world straight away, before the first simulation tick
+    if (typeof this.app.redraw === 'function') {
+      this.app.redraw();
+      this.app.updateSimpleUI?.(state, this.app.simulation.getSimulationStats?.());
+    }
+
     return state;
   }
   
@@ -828,15 +910,23 @@ Enter number to toggle (1-6) or cancel:`;
     const worlds = Array.isArray(savedWorlds) ? savedWorlds : [];
     
     if (worlds.length === 0) {
-      worldsList.innerHTML = '<div class="no-worlds">No saved worlds yet. Create your first ant colony!</div>';
+      worldsList.innerHTML = '<li class="no-worlds">No saved worlds yet. Create your first ant colony!</li>';
     } else {
-      worldsList.innerHTML = worlds.map(world => 
-        `<div class="world-item" data-world-id="${world.id}">
-          <div class="world-name">${world.worldName}</div>
-          <div class="world-info">${world.biomeType} • ${world.startingPopulation} ants • ${new Date(world.savedAt).toLocaleDateString()}</div>
-        </div>`
+      worldsList.innerHTML = worlds.slice(0, 3).map(world =>
+        `<li><button type="button" class="world-item" data-world-id="${escapeHTML(world.id)}">
+          <canvas class="pixel-canvas world-thumb" aria-hidden="true"></canvas>
+          <span class="world-text">
+            <span class="world-name">${escapeHTML(world.worldName)}</span>
+            <span class="world-info">${escapeHTML(BIOME_NAMES[world.biomeType] || world.biomeType)}</span>
+            <span class="world-meta">${escapeHTML(world.startingPopulation)} ants · ${new Date(world.savedAt).toLocaleDateString()}</span>
+          </span>
+        </button></li>`
       ).join('');
-      
+
+      worldsList.querySelectorAll('.world-item').forEach((item, i) => {
+        drawCells(item.querySelector('canvas'), 10, 6, worldThumbCells(worlds[i]));
+      });
+
       // Add click handlers for world items
       worldsList.querySelectorAll('.world-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -877,13 +967,19 @@ Enter number to toggle (1-6) or cancel:`;
     const lastWorld = Utils.storage.get('lastWorld');
     
     if (resumeBtn) {
-      if (lastWorld) {
-        resumeBtn.disabled = false;
-        resumeBtn.innerHTML = `🔄 Resume: ${lastWorld.worldName}`;
-      } else {
-        resumeBtn.disabled = true;
-        resumeBtn.innerHTML = '🔄 Resume Last World';
-      }
+      const title = lastWorld ? `Resume ${escapeHTML(lastWorld.worldName)}` : 'Resume last world';
+      const sub = lastWorld
+        ? [BIOME_NAMES[lastWorld.biomeType], lastWorld.startingSeason, `${lastWorld.startingPopulation} ants`]
+            .filter(Boolean).map(escapeHTML).join(' · ')
+        : 'No saved world yet';
+      resumeBtn.disabled = !lastWorld;
+      resumeBtn.innerHTML = `
+        <svg aria-hidden="true"><use href="#i-play"/></svg>
+        <span class="menu-btn-text">
+          <span class="menu-btn-title">${title}</span>
+          <span class="menu-btn-sub">${sub}</span>
+        </span>
+        <kbd>Enter</kbd>`;
     }
     
     // Update saved worlds list
