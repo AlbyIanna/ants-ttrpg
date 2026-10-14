@@ -309,6 +309,21 @@ export class SimpleRenderer {
     }
   }
 
+  /**
+   * When no frame is drawn for a second (paused, or nothing moved), show
+   * "— FPS" instead of a stale number; a fresh count starts with the next frame.
+   */
+  markFpsIdleLater() {
+    if (typeof setTimeout === 'undefined') return;
+    clearTimeout(this.fpsIdleTimer);
+    this.fpsIdleTimer = setTimeout(() => {
+      this.frameCount = 0;
+      this.lastFPSUpdate = Date.now();
+      const fpsElement = typeof document !== 'undefined' && document.getElementById('fps');
+      if (fpsElement) fpsElement.textContent = '— FPS';
+    }, 1000);
+  }
+
   /** 0 at the start of a tick's glide, 1 when ants reach their cells. */
   glideProgress(now) {
     if (this.reduceMotion || !this.tickStart) return 1;
@@ -338,6 +353,7 @@ export class SimpleRenderer {
       }
     });
     this.updatePerformanceStats(this.lastRenderTime || 0);
+    this.markFpsIdleLater();
 
     if (progress < 1 && !this.framePending) {
       this.framePending = true;

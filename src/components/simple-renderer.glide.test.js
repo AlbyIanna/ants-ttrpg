@@ -72,4 +72,23 @@ describe('SimpleRenderer gliding ants', () => {
     at(800); r.trackAnts(stateWith([[1, 1, 0]]))
     expect(drawn(r, 1, 800)).toEqual([1, 0])
   })
+
+  it('shows a dash in the FPS counter after a second without frames', () => {
+    vi.useFakeTimers()
+    try {
+      document.body.innerHTML = '<span id="fps">144 FPS</span>'
+      const r = renderer()
+      r.markFpsIdleLater()                 // a frame was drawn
+      vi.advanceTimersByTime(900)
+      r.markFpsIdleLater()                 // another frame within the second
+      vi.advanceTimersByTime(900)
+      expect(document.getElementById('fps').textContent).toBe('144 FPS')
+      vi.advanceTimersByTime(200)          // now a full second without frames
+      expect(document.getElementById('fps').textContent).toBe('— FPS')
+      expect(r.frameCount).toBe(0)         // the next frame starts a fresh count
+    } finally {
+      vi.useRealTimers()
+      document.body.innerHTML = ''
+    }
+  })
 })
