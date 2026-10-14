@@ -8,6 +8,9 @@
  *   v0.7.1 - Underground UI palette, ants coloured by role / behaviour state,
  *            rival colonies in violet, pheromone-trail and territory overlays,
  *            nest rings, Terrain layer toggle, zoomBy() and auto-resize.
+ *   v0.7.2 - Ants glide between cells over one tick (simulation unchanged);
+ *            static layer cached offscreen, so frames only copy it and draw
+ *            ants. Off under prefers-reduced-motion. FPS counts real frames.
  */
 
 import { PALETTE, STATE_COLORS } from './pixel-art.js';
@@ -52,6 +55,14 @@ export class SimpleRenderer {
       rival: PALETTE.rival,
       homeRing: PALETTE.worker
     };
+
+    // Gliding ants: per-ant track from the last cell to the new one
+    this.tracks = new Map();
+    this.tickStart = 0;
+    this.lastTickAt = 0;
+    this.tickDuration = 800;
+    this.reduceMotion = typeof window !== 'undefined' &&
+      !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     // Layer toggles (driven by the HUD's Layers chips)
     this.showTrails = true;
@@ -244,23 +255,113 @@ export class SimpleRenderer {
       }
     }
     
-    // Decide between full redraw or differential update
-    if (this.needsFullRedraw) {
-      this.drawFull(state);
-      this.needsFullRedraw = false;
-    } else {
-      this.drawUpdates(state);
+    // Ants glide between ticks: note who moved, then repaint the static
+    // layer (terrain, overlays, nests, food) once and animate ants over it
+    this.trackAnts(state);
+    this.drawFull(state);
+    this.needsFullRedraw = false;
+    this.lastRenderTime = performance.now() - startTime;
+  }
+
+  /**
+   * Record each ant's move since the last tick. A new tick starts a glide from
+   * where the ant is drawn now to its new cell, over one tick's duration.
+   * Renders without movement (pan, zoom, layer toggles) leave glides alone.
+   */
+  trackAnts(state) {
+    const now = performance.now();
+    const progress = this.glideProgress(now);
+    const seen = new Set();
+    let moved = false;
+
+    (state.ants || []).forEach(ant => {
+      const { x, y } = ant.position;
+      seen.add(ant.id);
+      const track = this.tracks.get(ant.id);
+      if (!track) {
+        this.tracks.set(ant.id, { fx: x, fy: y, tx: x, ty: y });
+      } else if (track.tx !== x || track.ty !== y) {
+        // Start from the drawn position; snap jumps longer than one cell (births, teleports)
+        const jumped = Math.abs(x - track.tx) > 1.5 || Math.abs(y - track.ty) > 1.5;
+        track.fx = jumped ? x : track.fx + (track.tx - track.fx) * progress;
+        track.fy = jumped ? y : track.fy + (track.ty - track.fy) * progress;
+        track.tx = x;
+        track.ty = y;
+        track.tick = now;
+        moved = true;
+      }
+    });
+    for (const id of this.tracks.keys()) {
+      if (!seen.has(id)) this.tracks.delete(id);
     }
-    
-    // Update performance stats
-    const renderTime = performance.now() - startTime;
-    this.updatePerformanceStats(renderTime);
+
+    if (moved) {
+      // Ants that stood still this tick finish where they are
+      this.tracks.forEach(track => {
+        if (track.tick !== now) { track.fx = track.tx; track.fy = track.ty; }
+      });
+      // Glide for as long as a tick lasts (800 ms at 1x, shorter when sped up)
+      if (this.lastTickAt) {
+        this.tickDuration = Math.max(60, Math.min(1000, now - this.lastTickAt));
+      }
+      this.lastTickAt = now;
+      this.tickStart = now;
+    }
+  }
+
+  /** 0 at the start of a tick's glide, 1 when ants reach their cells. */
+  glideProgress(now) {
+    if (this.reduceMotion || !this.tickStart) return 1;
+    return Math.max(0, Math.min(1, (now - this.tickStart) / this.tickDuration));
+  }
+
+  /**
+   * Paint one frame: the cached static layer, then ants at their glide
+   * position. Keeps requesting frames until every glide has finished.
+   */
+  present() {
+    const now = performance.now();
+    if (this.background) {
+      this.ctx.drawImage(this.background, 0, 0);
+    }
+    const progress = this.glideProgress(now);
+    const size = Math.ceil(this.scale);
+    (this.lastState?.ants || []).forEach(ant => {
+      const track = this.tracks.get(ant.id);
+      const wx = track ? track.fx + (track.tx - track.fx) * progress : ant.position.x;
+      const wy = track ? track.fy + (track.ty - track.fy) * progress : ant.position.y;
+      const px = Math.round(this.offsetX + wx * this.scale);
+      const py = Math.round(this.offsetY + wy * this.scale);
+      if (px + size > 0 && px < this.canvasWidth && py + size > 0 && py < this.canvasHeight) {
+        this.ctx.fillStyle = this.antColor(ant);
+        this.ctx.fillRect(px, py, size, size);
+      }
+    });
+    this.updatePerformanceStats(this.lastRenderTime || 0);
+
+    if (progress < 1 && !this.framePending) {
+      this.framePending = true;
+      requestAnimationFrame(() => {
+        this.framePending = false;
+        this.present();
+      });
+    }
   }
   
   /**
    * Full redraw - used when view changes or world resets
    */
   drawFull(state) {
+    // Static layer goes to an offscreen canvas, so animation frames only copy it
+    if (typeof document !== 'undefined') {
+      if (!this.background) this.background = document.createElement('canvas');
+      if (this.background.width !== this.canvasWidth) this.background.width = this.canvasWidth;
+      if (this.background.height !== this.canvasHeight) this.background.height = this.canvasHeight;
+    }
+    const screen = this.ctx;
+    const bgCtx = this.background?.getContext?.('2d');
+    if (bgCtx) this.ctx = bgCtx;
+
     // Clear canvas
     this.ctx.fillStyle = this.colors.background;
     this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
@@ -276,9 +377,14 @@ export class SimpleRenderer {
 
     // Draw food sources
     this.drawFood(state, bounds);
-    
-    // Draw ants
-    this.drawAnts(state, bounds);
+
+    this.ctx = screen;
+    if (bgCtx) {
+      // Ants are drawn per frame, at their glide position
+      this.present();
+    } else {
+      this.drawAnts(state, bounds);
+    }
     
     // Clear update set since we drew everything
     this.cellsToUpdate.clear();
