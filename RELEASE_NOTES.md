@@ -31,6 +31,8 @@ Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live 
 - New worlds pass `nestCount` and enable the pheromone system, so multiple colonies and trails now run from the UI.
 - Fix: `generateDistributedNestPositions` (the default placement) now floors its margin. On Small worlds (75 cells high, so a 7.5-cell margin) two or more nests got fractional coordinates such as 74.5 and crashed `moveAnt()`; the other sizes give whole-number margins. **Core simulation change - needs human review.**
 - Seeded randomness: every random choice in `WebSimulation` goes through one seeded generator (`src/components/random.js`). A world's seed is stored in `state.seed` and in the saved world config, so Resume and Load rebuild the same map. **Core simulation change - needs human review.**
+- **Ants follow pheromone trails.** `influenceAntMovement()` already picked the strongest neighbouring trail cell, but nothing used the result. Now `moveAntRandomly()` asks for a trail step from the ant's current cell and takes it; it skips the cell the ant just left (no shuffling back and forth) and cells it cannot enter (a trail on rock pinned ants), and breaks ties at random (the fixed scan order always favoured up-left). Returning ants still head straight home. On by default; `pathfindingWeight: 0` turns it off. **Core gameplay change - needs human review.**
+- Trail tests rewritten to test the mechanism: ten ants on parallel trails (measured over 200 seeds: 48-89 steps on a trail when following, 5-35 for a random walk; the test asserts at least 40), a gradient-climbing ant, and recruitment (a worker carrying food lays a trail home; a forager next to it steps onto it).
 - Simulation tests run with a fixed seed (override with `TEST_SEED=n npx vitest run`). The pheromone decay and evaporation tests now use a corner cell instead of the nest cell, where ants kept laying fresh trail; both pass on 20 of 20 seeds.
 - Fix: role-split normalisation no longer runs on every input event, which corrupted preset values mid-update.
 - Renderer repaints after a resize, so a paused world no longer goes blank.
@@ -38,7 +40,8 @@ Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live 
 ### Known issues
 - The FPS counter counts renders, which happen once per simulation tick (every 800 ms at 1x).
 - A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
-- Pheromone trails never steer ants: `influenceAntMovement()` sets `ant.targetPosition`, but no movement code reads it (and it only runs when `pheromoneSystem.pathfindingWeight` is set). Ants lay trails and trails decay, but nobody follows them. The tests "follow existing pheromone trails", "influence ant pathfinding decisions" and "enable recruitment to food sources" check that missing behaviour; with the fixed test seed two of them fail on every run (each fails on 7-12 of 20 seeds).
+- `resourceDistribution: 'contested'` is not implemented anywhere in the simulation; the "contested resource zones" test passes only when random food lands in a neutral zone (it fails on about 7-10% of seeds; the default seed passes). Needs a decision, like trail-following did.
+- Rare seed-dependent failures remain: "dense forest areas" (2 of 201 seeds), "recruitment" (1), "stronger trails last longer" (1). Render-timing tests can fail under heavy machine load.
 - Fixed two tests that failed on every run because of mistakes in the tests: the single-nest test now expects the floored centre cell, and the pheromones-disabled test no longer compares food counts of two random worlds.
 - The GameMaster session is not saved with the world and does not feed back into the live simulation; it resets on page reload.
 

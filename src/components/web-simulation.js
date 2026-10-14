@@ -6,6 +6,9 @@
  *          random.js); worlds are reproducible from state.seed / config.seed.
  *          Distributed nest placement floors its margin (fractional nest
  *          coordinates crashed moveAnt on Small worlds).
+ *          Ants follow pheromone trails: moveAntRandomly asks
+ *          influenceAntMovement for a trail step from the current cell and
+ *          takes it, skipping the cell the ant just left.
  */
 
 import { Utils } from './utils.js';
@@ -858,6 +861,20 @@ export class WebSimulation {
    * Move ant randomly
    */
   moveAntRandomly(ant) {
+    // Look for a trail from where the ant stands now; a trail step wins over a random one
+    const environment = this.state?.environment;
+    if (environment?.pheromoneMap && environment.metadata?.pheromoneSystem) {
+      this.influenceAntMovement(ant, environment, environment.metadata.pheromoneSystem);
+    }
+    if (ant.targetPosition) {
+      const target = ant.targetPosition;
+      ant.targetPosition = null;
+      if (target.x !== ant.position.x || target.y !== ant.position.y) {
+        this.moveAntToward(ant, target);
+        return;
+      }
+    }
+
     const directions = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
     const [dx, dy] = this.random.choice(directions);
     this.moveAnt(ant, dx, dy);
@@ -884,6 +901,8 @@ export class WebSimulation {
         to: { x: newX, y: newY }
       });
       
+      // Remember where the ant came from, so trail-following doesn't send it straight back
+      ant.previousPosition = { x: ant.position.x, y: ant.position.y };
       ant.position.x = newX;
       ant.position.y = newY;
       
@@ -1892,10 +1911,8 @@ export class WebSimulation {
       this.layPheromones(ant, environment, config);
     });
     
-    // Update ant pathfinding based on pheromones
-    this.state.ants.forEach(ant => {
-      this.influenceAntMovement(ant, environment, config);
-    });
+    // Trail-following is decided at step time, in moveAntRandomly(), from the
+    // ant's current position (deciding here, after the move, lagged one tick).
   }
 
   /**
@@ -2024,7 +2041,14 @@ export class WebSimulation {
    * Influence ant movement based on pheromone trails
    */
   influenceAntMovement(ant, environment, config) {
-    if (!config.pathfindingWeight || ant.state === 'resting') return;
+    // Trails pull ants that wander (foraging, exploring); returning ants head
+    // straight home and resting ants stay put. pathfindingWeight scales the pull
+    // (default 1; 0 turns trail-following off).
+    const weight = config.pathfindingWeight ?? 1;
+    if (weight <= 0 || ant.state === 'resting' || ant.state === 'returning') {
+      ant.targetPosition = null;
+      return;
+    }
     
     const { x, y } = ant.position;
     const { width, height } = environment.metadata;
@@ -2047,7 +2071,11 @@ export class WebSimulation {
       const nx = x + dir.dx;
       const ny = y + dir.dy;
       
-      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+      const cameFrom = ant.previousPosition && nx === ant.previousPosition.x && ny === ant.previousPosition.y;
+      // Only cells the ant can enter: a trail cell on rock would win every time and pin the ant
+      const walkable = nx >= 0 && nx < width && ny >= 0 && ny < height &&
+        environment.terrain[ny][nx] !== '🪨' && environment.terrain[ny][nx] !== '🏔';
+      if (!cameFrom && walkable) {
         let strength = environment.pheromoneMap[ny][nx];
         
         // Boost strength for relevant pheromone types
@@ -2077,7 +2105,8 @@ export class WebSimulation {
           });
         }
         
-        if (strength > bestStrength) {
+        // Break ties at random: a fixed scan order always favoured up-left
+        if (strength > bestStrength || (strength > 0 && strength === bestStrength && this.random.next() < 0.5)) {
           bestStrength = strength;
           bestDirection = dir;
         }
@@ -2091,7 +2120,7 @@ export class WebSimulation {
       const newY = Utils.clamp(y + bestDirection.dy, 0, height - 1);
       
       // Set or modify ant's target position based on pheromone influence
-      if (this.random.next() < influence * 0.5) {
+      if (this.random.next() < Math.min(1, influence * 0.5 * weight)) {
         ant.targetPosition = { x: newX, y: newY };
       }
     }

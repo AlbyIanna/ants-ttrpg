@@ -113,44 +113,40 @@ describe('WebSimulation - Pheromone Communication System', () => {
         }
       }
       const state = await simulation.initializeColony('forest_floor', config)
-      
-      // Create artificial pheromone trail
-      const trail = [
-        { x: 50, y: 30 }, { x: 51, y: 30 }, { x: 52, y: 30 },
-        { x: 53, y: 30 }, { x: 54, y: 30 }, { x: 55, y: 30 }
-      ]
-      
-      trail.forEach(pos => {
-        if (state.environment.pheromoneMap[pos.y] && state.environment.pheromoneMap[pos.y][pos.x] !== undefined) {
-          state.environment.pheromoneMap[pos.y][pos.x] = 1.0
-        }
-      })
-      
-      // Place ant near trail start
-      const ant = state.ants[0]
-      ant.position.x = 49
-      ant.position.y = 30
-      ant.state = 'exploring'
-      
-      // Track ant movement over several updates
-      const initialPosition = { x: ant.position.x, y: ant.position.y }
-      
-      for (let i = 0; i < 10; i++) {
-        simulation.update()
-      }
-      
-      // Ant should have moved along or toward the trail
-      const distanceMoved = Math.sqrt(
-        Math.pow(ant.position.x - initialPosition.x, 2) + 
-        Math.pow(ant.position.y - initialPosition.y, 2)
-      )
-      
-      expect(distanceMoved).toBeGreaterThan(0)
-      expect(ant.position.x).toBeGreaterThanOrEqual(initialPosition.x) // Generally moving right along trail
-    })
-  })
+      const { terrain, pheromoneMap } = state.environment
 
-  describe('Pheromone Decay and Evaporation', () => {
+      // Ten parallel 6-cell trails (rows 20, 22, ... 38, x 50-55), one exploring
+      // ant just left of each.
+      // One ant alone is a coin toss: if its first step is the 20% random one
+      // and goes the wrong way, the trail is out of reach (ants sense only
+      // adjacent cells). Ten ants measure the behaviour, not the luck.
+      const rows = [20, 22, 24, 26, 28, 30, 32, 34, 36, 38]
+      const ants = state.ants.slice(0, rows.length)
+      rows.forEach((row, i) => {
+        for (let x = 49; x <= 55; x++) terrain[row][x] = '.' // trails only exist where ants can walk
+        for (let x = 50; x <= 55; x++) pheromoneMap[row][x] = 1.0
+        Object.assign(ants[i], { state: 'exploring', energy: 100, stateTimer: 100, previousPosition: null, carryingFood: false })
+        ants[i].position.x = 49
+        ants[i].position.y = row
+      })
+
+      // Count, over 10 updates, the steps each ant ends on a trail cell. Any
+      // trail counts: an ant that steps off is next to the neighbouring trail
+      // too, and joining that one is still following a trail.
+      const onATrail = (ant) => rows.includes(ant.position.y) && ant.position.x >= 50 && ant.position.x <= 55
+      let stepsOnTrail = 0
+      for (let step = 0; step < 10; step++) {
+        simulation.update()
+        ants.forEach(ant => { if (onATrail(ant)) stepsOnTrail++ })
+      }
+
+      // Measured over seeds 1-200 with this exact setup: following trails gives
+      // 48-89 steps on a trail (median 77); with trail-following off
+      // (pathfindingWeight 0) a random walk gives 5-35 (median 19). 40 sits
+      // between the worst follower and the best random walker.
+      expect(stepsOnTrail).toBeGreaterThanOrEqual(40)
+    })
+
     it('should decay pheromone trails over time', async () => {
       const config = {
         worldSize: 'small',
@@ -243,96 +239,112 @@ describe('WebSimulation - Pheromone Communication System', () => {
 
   describe('Pheromone-Based Decision Making', () => {
     it('should influence ant pathfinding decisions', async () => {
+      // Ants climb a pheromone gradient: each step goes to the strongest
+      // neighbouring cell (never straight back to the cell they came from).
       const config = {
-        worldSize: 'medium',
+        worldSize: 'small',
         startingPopulation: 5,
         pheromoneSystem: {
           enabled: true,
           pathfindingWeight: 3.0,
-          randomExploration: 0.2
+          followProbability: 1.0 // always follow, so only the trail decides
         }
       }
       const state = await simulation.initializeColony('grassland', config)
-      
-      // Create pheromone gradient leading to food
-      const foodSource = state.environment.foodSources[0]
-      const nestPos = state.nests[0].position
-      
-      // Create trail from nest toward food
-      const steps = 10
-      for (let i = 0; i < steps; i++) {
-        const progress = i / steps
-        const x = Math.floor(nestPos.x + (foodSource.x - nestPos.x) * progress)
-        const y = Math.floor(nestPos.y + (foodSource.y - nestPos.y) * progress)
-        
-        if (state.environment.pheromoneMap[y] && state.environment.pheromoneMap[y][x] !== undefined) {
-          state.environment.pheromoneMap[y][x] = 1.0 - (progress * 0.5) // Stronger near nest
-        }
+      const { pheromoneMap, terrain } = state.environment
+
+      // A straight trail along row 5, getting stronger towards x = 25
+      const row = 5
+      for (let i = 0; i <= 15; i++) {
+        const x = 10 + i
+        terrain[row][x] = '.' // clear any rock so the lane is walkable
+        pheromoneMap[row][x] = 0.2 + i * 0.05
       }
-      
-      const explorers = state.ants.filter(ant => ant.role === 'scout')
-      const initialPositions = explorers.map(ant => ({ x: ant.position.x, y: ant.position.y }))
-      
-      // Run simulation for multiple steps
-      for (let i = 0; i < 15; i++) {
+
+      const ant = state.ants[0]
+      Object.assign(ant, { state: 'exploring', energy: 100, stateTimer: 100, previousPosition: null })
+      ant.position.x = 9
+      ant.position.y = row
+
+      for (let i = 0; i < 10; i++) {
         simulation.update()
       }
-      
-      // At least some ants should move toward the pheromone trail/food
-      let antsMovedTowardFood = 0
-      explorers.forEach((ant, index) => {
-        const initial = initialPositions[index]
-        const distanceToFoodInitial = Math.sqrt(
-          Math.pow(foodSource.x - initial.x, 2) + Math.pow(foodSource.y - initial.y, 2)
-        )
-        const distanceToFoodFinal = Math.sqrt(
-          Math.pow(foodSource.x - ant.position.x, 2) + Math.pow(foodSource.y - ant.position.y, 2)
-        )
-        
-        if (distanceToFoodFinal < distanceToFoodInitial) {
-          antsMovedTowardFood++
-        }
-      })
-      
-      expect(antsMovedTowardFood).toBeGreaterThan(0)
+
+      // Following the gradient moves the ant right along the trail
+      expect(ant.position.y).toBe(row)
+      expect(ant.position.x).toBeGreaterThanOrEqual(15)
     })
 
     it('should enable recruitment to food sources', async () => {
+      // Recruitment: a worker carrying food lays a trail on its way home, and a
+      // foraging ant that comes across that trail steps onto it.
       const config = {
-        worldSize: 'large',
-        startingPopulation: 15,
+        worldSize: 'small',
+        startingPopulation: 10,
         pheromoneSystem: {
           enabled: true,
-          recruitmentRadius: 8,
-          recruitmentThreshold: 0.5
+          followProbability: 1.0,
+          trailInfluence: 2.0 // with followProbability 1: always take the trail step
         }
       }
       const state = await simulation.initializeColony('forest_floor', config)
-      
-      // Simulate an ant finding food and returning
+      const { pheromoneMap, terrain, metadata } = state.environment
+
+      // Hide all food so foragers wander instead of heading straight to it
+      state.environment.foodSources.forEach(food => { food.discovered = false })
+
+      const walkable = (x, y) => x >= 0 && y >= 0 && x < metadata.width && y < metadata.height &&
+        terrain[y][x] !== '🪨' && terrain[y][x] !== '🏔'
+
+      // A worker about 15 cells east of the nest heads home with food, laying
+      // trail. Start it on walkable ground: dropped on a rock it can't move.
+      const nest = state.nests[0].position
       const worker = state.ants.find(ant => ant.role === 'worker')
-      const foodSource = state.environment.foodSources[0]
-      
-      worker.position.x = foodSource.x
-      worker.position.y = foodSource.y
-      worker.carryingFood = true
-      worker.state = 'returning'
-      
-      const antsBefore = state.ants.filter(ant => 
-        Math.sqrt(Math.pow(ant.position.x - foodSource.x, 2) + Math.pow(ant.position.y - foodSource.y, 2)) < 15
-      ).length
-      
-      // Run simulation to allow pheromone laying and recruitment
-      for (let i = 0; i < 20; i++) {
+      Object.assign(worker, { state: 'returning', carryingFood: true, energy: 100, stateTimer: 100 })
+      let startX = Math.min(metadata.width - 1, nest.x + 15)
+      while (startX < metadata.width - 1 && !walkable(startX, nest.y)) startX++
+      worker.position.x = startX
+      worker.position.y = nest.y
+      for (let i = 0; i < 6; i++) {
         simulation.update()
       }
-      
-      const antsAfter = state.ants.filter(ant => 
-        Math.sqrt(Math.pow(ant.position.x - foodSource.x, 2) + Math.pow(ant.position.y - foodSource.y, 2)) < 15
-      ).length
-      
-      // More ants should be near the food source due to recruitment
-      expect(antsAfter).toBeGreaterThanOrEqual(antsBefore)
+
+      const trailCells = []
+      for (let y = 0; y < metadata.height; y++) {
+        for (let x = 0; x < metadata.width; x++) {
+          if (pheromoneMap[y][x] >= 1 && Math.abs(x - nest.x) > 3 && walkable(x, y)) trailCells.push({ x, y })
+        }
+      }
+      expect(trailCells.length).toBeGreaterThan(0)
+
+      // Put a forager on an empty, walkable cell right next to the trail
+      let start = null
+      for (const cell of trailCells) {
+        for (const [dx, dy] of [[0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+          const x = cell.x + dx, y = cell.y + dy
+          if (walkable(x, y) && pheromoneMap[y][x] === 0) {
+            start = { x, y }
+            break
+          }
+        }
+        if (start) break
+      }
+      expect(start).not.toBeNull()
+
+      const forager = state.ants.find(ant => ant !== worker && ant.role === 'worker') || state.ants.find(ant => ant !== worker)
+      Object.assign(forager, { state: 'foraging', carryingFood: false, energy: 100, stateTimer: 100, previousPosition: null })
+      forager.position.x = start.x
+      forager.position.y = start.y
+
+      // Explorers may have rediscovered food meanwhile; a forager within 8 cells
+      // of known food heads for it instead, so hide it again for this step
+      state.environment.foodSources.forEach(food => { food.discovered = false })
+
+      // One step: the trail is a neighbour, so it beats a random direction
+      simulation.update()
+
+      // The forager has been drawn onto the returning worker's trail
+      expect(trailCells.some(cell => cell.x === forager.position.x && cell.y === forager.position.y)).toBe(true)
     })
   })
 
