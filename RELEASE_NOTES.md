@@ -36,7 +36,8 @@ Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live 
 ### Known issues
 - The FPS counter counts renders, which happen once per simulation tick (every 800 ms at 1x).
 - A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
-- 3-4 tests in `multiple-nests.test.js` and `pheromone-communication.test.js` fail (two always, others intermittently). The same tests failed before this release; the likely cause is unseeded `Math.random()` in world generation.
+- Five tests in `pheromone-communication.test.js` fail intermittently (each in roughly 2-7 of 10 runs, the same rates as before this release). They check emergent behaviour after a few ticks of unseeded `Math.random()`; a seeded RNG in the simulation would make them deterministic.
+- Fixed two tests that failed on every run because of mistakes in the tests: the single-nest test now expects the floored centre cell, and the pheromones-disabled test no longer compares food counts of two random worlds.
 - The GameMaster session is not saved with the world and does not feed back into the live simulation; it resets on page reload.
 
 ## prototype-v0.6 - Configurable Worlds Edition (2025-09-12)

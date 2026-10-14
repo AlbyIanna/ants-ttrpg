@@ -466,9 +466,14 @@ describe('WebSimulation - Pheromone Communication System', () => {
       const simulation2 = new WebSimulation()
       const stateWith = await simulation2.initializeColony('forest_floor', configWithPheromones)
       
-      // Both should behave similarly
+      // Omitting the pheromone config and disabling it must be equivalent:
+      // same colony, no pheromone map. (Food counts are not compared: each
+      // world is generated with unseeded randomness, so they always differ.)
       expect(stateWithout.ants.length).toBe(stateWith.ants.length)
-      expect(stateWithout.environment.foodSources.length).toBe(stateWith.environment.foodSources.length)
+      expect(stateWithout.environment.pheromoneMap).toBeUndefined()
+      expect(stateWith.environment.pheromoneMap).toBeUndefined()
+      expect(stateWithout.environment.foodSources.length).toBeGreaterThan(0)
+      expect(stateWith.environment.foodSources.length).toBeGreaterThan(0)
     })
   })
 })
