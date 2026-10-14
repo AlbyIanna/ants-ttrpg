@@ -85,6 +85,7 @@ describe('WebSimulation - Pheromone Communication System', () => {
         ant.position.y = foodSource.y
         ant.carryingFood = true
         ant.state = 'returning'
+        ant.stateTimer = 100 // as the simulation does on entering a state; 0 would switch it straight back
         
         simulation.update()
         

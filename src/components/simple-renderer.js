@@ -380,14 +380,19 @@ export class SimpleRenderer {
    * Blend two #rrggbb colours (cached: the same few pairs repeat every frame)
    */
   mix(a, b, t) {
-    const step = Math.round(t * 20) / 20;
-    const key = `${a}${b}${step}`;
-    let out = this.mixCache.get(key);
+    // Cache by colour, then colour, then one of 21 steps: no per-cell key strings
+    const index = Math.max(0, Math.min(20, Math.round(t * 20)));
+    let byB = this.mixCache.get(a);
+    if (!byB) { byB = new Map(); this.mixCache.set(a, byB); }
+    let steps = byB.get(b);
+    if (!steps) { steps = new Array(21); byB.set(b, steps); }
+    let out = steps[index];
     if (!out) {
+      const step = index / 20;
       const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
       const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
       out = '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * step).toString(16).padStart(2, '0')).join('');
-      this.mixCache.set(key, out);
+      steps[index] = out;
     }
     return out;
   }
@@ -496,7 +501,16 @@ export class SimpleRenderer {
    * Handle window resize
    */
   handleResize() {
+    // Keep the world point at the centre of the view where it was;
+    // setupCanvas() alone recentres the world and loses the player's pan
+    const hadView = this.canvasWidth > 0 && this.lastState;
+    const centreX = (this.canvasWidth / 2 - this.offsetX) / this.scale;
+    const centreY = (this.canvasHeight / 2 - this.offsetY) / this.scale;
     this.setupCanvas();
+    if (hadView) {
+      this.offsetX = this.canvasWidth / 2 - centreX * this.scale;
+      this.offsetY = this.canvasHeight / 2 - centreY * this.scale;
+    }
     this.needsFullRedraw = true;
     // Resizing a canvas clears it; repaint now so a paused world doesn't go blank
     if (this.lastState) this.render(this.lastState);

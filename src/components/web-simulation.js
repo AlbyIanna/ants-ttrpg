@@ -630,7 +630,7 @@ export class WebSimulation {
   /**
    * Update simulation state
    */
-  update(deltaTime) {
+  update(deltaTime = this.updateInterval) {
     if (!this.state) return;
     
     Utils.performance.start('simulationUpdate');
@@ -1994,14 +1994,17 @@ export class WebSimulation {
       case 'returning':
         pheromoneAmount = trailStrength * (config.strengthMultipliers?.food || 1.5);
         break;
+      // Wandering ants leave only a faint scent, under the 0.1 that
+      // influenceAntMovement follows, so ants don't trail their own footsteps;
+      // the strong trail is the one laid by ants bringing food home.
       case 'exploring':
-        pheromoneAmount = trailStrength * (config.strengthMultipliers?.exploration || 0.5);
+        pheromoneAmount = trailStrength * (config.strengthMultipliers?.exploration ?? 0.05);
         break;
       case 'foraging':
-        pheromoneAmount = trailStrength * 1.0;
+        pheromoneAmount = trailStrength * (config.strengthMultipliers?.foraging ?? 0.05);
         break;
       default:
-        pheromoneAmount = trailStrength * 0.3;
+        pheromoneAmount = trailStrength * 0.05;
     }
     
     // Lay pheromones in main map
@@ -2076,7 +2079,9 @@ export class WebSimulation {
       const walkable = nx >= 0 && nx < width && ny >= 0 && ny < height &&
         environment.terrain[ny][nx] !== '🪨' && environment.terrain[ny][nx] !== '🏔';
       if (!cameFrom && walkable) {
-        let strength = environment.pheromoneMap[ny][nx];
+        // With per-colony maps the shared map is everyone's scent: steer by the
+        // colony maps below instead, so rivals don't follow each other's trails
+        let strength = environment.pheromoneByColony ? 0 : environment.pheromoneMap[ny][nx];
         
         // Boost strength for relevant pheromone types
         if (environment.pheromoneTypes) {

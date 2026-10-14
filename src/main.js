@@ -257,6 +257,9 @@ class AntColonyApp {
       // Map shortcuts belong to the live colony, not the GameMaster screen
       if (this.gameMaster?.isOpen()) return;
       
+      // Shortcuts drive the simulation only on the HUD, not behind the title menu
+      if (this.menuManager?.isVisible()) return;
+
       switch (e.code) {
         case 'Space':
           e.preventDefault();

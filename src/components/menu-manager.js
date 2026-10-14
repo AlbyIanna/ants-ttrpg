@@ -527,7 +527,9 @@ export class MenuManager {
       maxPopulation: config.maxPopulation,
       nestCount: config.nestCount || 1,
       seed: config.seed,
-      pheromoneSystem: { enabled: true },
+      // decayRate: trails fade (decay only runs when it is set); colonySpecific:
+      // each colony follows its own trails, not its rivals'
+      pheromoneSystem: { enabled: true, decayRate: 0.05, colonySpecific: true },
       roleDistribution: {
         workers: config.workerRatio / 100,
         scouts: config.scoutRatio / 100,
