@@ -30,13 +30,15 @@ Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live 
 ### Behaviour changes
 - New worlds pass `nestCount` and enable the pheromone system, so multiple colonies and trails now run from the UI.
 - Fix: `generateDistributedNestPositions` (the default placement) now floors its margin. On Small worlds (75 cells high, so a 7.5-cell margin) two or more nests got fractional coordinates such as 74.5 and crashed `moveAnt()`; the other sizes give whole-number margins. **Core simulation change - needs human review.**
+- Seeded randomness: every random choice in `WebSimulation` goes through one seeded generator (`src/components/random.js`). A world's seed is stored in `state.seed` and in the saved world config, so Resume and Load rebuild the same map. **Core simulation change - needs human review.**
+- Simulation tests run with a fixed seed (override with `TEST_SEED=n npx vitest run`). The pheromone decay and evaporation tests now use a corner cell instead of the nest cell, where ants kept laying fresh trail; both pass on 20 of 20 seeds.
 - Fix: role-split normalisation no longer runs on every input event, which corrupted preset values mid-update.
 - Renderer repaints after a resize, so a paused world no longer goes blank.
 
 ### Known issues
 - The FPS counter counts renders, which happen once per simulation tick (every 800 ms at 1x).
 - A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
-- Five tests in `pheromone-communication.test.js` fail intermittently (each in roughly 2-7 of 10 runs, the same rates as before this release). They check emergent behaviour after a few ticks of unseeded `Math.random()`; a seeded RNG in the simulation would make them deterministic.
+- Pheromone trails never steer ants: `influenceAntMovement()` sets `ant.targetPosition`, but no movement code reads it (and it only runs when `pheromoneSystem.pathfindingWeight` is set). Ants lay trails and trails decay, but nobody follows them. The tests "follow existing pheromone trails", "influence ant pathfinding decisions" and "enable recruitment to food sources" check that missing behaviour; with the fixed test seed two of them fail on every run (each fails on 7-12 of 20 seeds).
 - Fixed two tests that failed on every run because of mistakes in the tests: the single-nest test now expects the floored centre cell, and the pheromones-disabled test no longer compares food counts of two random worlds.
 - The GameMaster session is not saved with the world and does not feed back into the live simulation; it resets on page reload.
 

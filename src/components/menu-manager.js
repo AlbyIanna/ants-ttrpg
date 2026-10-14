@@ -5,7 +5,8 @@
  * Changelog:
  *   v0.7 - Full-page world creation driven by world-form.js, pixel-art title
  *          screen and world thumbnails, menu keyboard shortcuts, nest count
- *          and pheromone trails passed to the simulation.
+ *          and pheromone trails passed to the simulation; each world keeps its
+ *          random seed, so Resume / Load rebuild the same map.
  */
 
 import { Utils } from './utils.js';
@@ -525,6 +526,7 @@ export class MenuManager {
       startingPopulation: config.startingPopulation,
       maxPopulation: config.maxPopulation,
       nestCount: config.nestCount || 1,
+      seed: config.seed,
       pheromoneSystem: { enabled: true },
       roleDistribution: {
         workers: config.workerRatio / 100,
@@ -554,6 +556,12 @@ export class MenuManager {
       nests === 1 ? '1 colony' : `${nests} colonies`
     ].filter(Boolean).join(' · '));
     
+    // Keep the seed with the world so Resume / Load rebuild this exact map
+    // (worlds saved before v0.7 have none: they get one now, saved on next create)
+    if (config.seed === undefined && state?.seed !== undefined) {
+      config.seed = state.seed;
+    }
+
     // Mark as initialized
     this.app.isInitialized = true;
 

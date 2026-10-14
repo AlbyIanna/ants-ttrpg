@@ -48,20 +48,11 @@ export const BIOME_PALETTES = {
   mixed: ['#3B2C20', '#56713A', '#C9A66B', '#2F5D73', '#6B655C']
 };
 
-const BIOME_SEEDS = { forest: 3, desert: 11, grassland: 19, wetland: 5, mixed: 23 };
+import { rng } from './random.js';
 
-/**
- * Seeded PRNG (mulberry32). Same seed, same sequence.
- */
-export function rng(seed) {
-  let s = seed | 0;
-  return function () {
-    s = (s + 0x6D2B79F5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export { rng };
+
+const BIOME_SEEDS = { forest: 3, desert: 11, grassland: 19, wetland: 5, mixed: 23 };
 
 /**
  * Turn a string (e.g. a world id) into a stable numeric seed.

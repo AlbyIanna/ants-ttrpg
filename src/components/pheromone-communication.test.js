@@ -6,11 +6,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WebSimulation } from './web-simulation.js'
 
+// Fixed seed so worlds and ticks are reproducible; override with TEST_SEED=n
+const TEST_SEED = Number(process.env.TEST_SEED ?? 20261014)
+
 describe('WebSimulation - Pheromone Communication System', () => {
   let simulation
 
   beforeEach(() => {
-    simulation = new WebSimulation()
+    simulation = new WebSimulation({ seed: TEST_SEED })
   })
 
   afterEach(() => {
@@ -159,10 +162,11 @@ describe('WebSimulation - Pheromone Communication System', () => {
       }
       const state = await simulation.initializeColony('grassland', config)
       
-      // Create initial pheromone
-      const { width, height } = state.environment.metadata
-      const centerX = Math.floor(width / 2)
-      const centerY = Math.floor(height / 2)
+      // Create initial pheromone on a corner cell. Not the centre: that is the
+      // nest, where ants stand and lay fresh pheromone every update. Ants start
+      // at the nest and move one cell per update, so none reach (2, 2) here.
+      const centerX = 2
+      const centerY = 2
       state.environment.pheromoneMap[centerY][centerX] = 1.0
       
       const initialStrength = state.environment.pheromoneMap[centerY][centerX]
@@ -189,10 +193,10 @@ describe('WebSimulation - Pheromone Communication System', () => {
       }
       const state = await simulation.initializeColony('desert', config)
       
-      // Create weak pheromone trail
-      const { width, height } = state.environment.metadata
-      const centerX = Math.floor(width / 2)
-      const centerY = Math.floor(height / 2)
+      // Create weak pheromone trail on a corner cell, away from the nest
+      // (see the decay test above for why not the centre)
+      const centerX = 2
+      const centerY = 2
       state.environment.pheromoneMap[centerY][centerX] = 0.15 // Just above threshold
       
       // Run many updates to force evaporation
@@ -463,7 +467,7 @@ describe('WebSimulation - Pheromone Communication System', () => {
       const stateWithout = await simulation.initializeColony('forest_floor', configWithoutPheromones)
       simulation.stop()
       
-      const simulation2 = new WebSimulation()
+      const simulation2 = new WebSimulation({ seed: TEST_SEED })
       const stateWith = await simulation2.initializeColony('forest_floor', configWithPheromones)
       
       // Omitting the pheromone config and disabling it must be equivalent:
