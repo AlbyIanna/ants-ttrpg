@@ -29,14 +29,14 @@ Implements the GameMaster artboard: a turn-based TTRPG layer on top of the live 
 
 ### Behaviour changes
 - New worlds pass `nestCount` and enable the pheromone system, so multiple colonies and trails now run from the UI.
-- Fix: `generateDistributedNestPositions` floored its margin; fractional nest coordinates crashed `moveAnt()` as soon as more than one nest was used. **Core simulation change - needs human review.**
+- Fix: `generateDistributedNestPositions` (the default placement) now floors its margin. On Small worlds (75 cells high, so a 7.5-cell margin) two or more nests got fractional coordinates such as 74.5 and crashed `moveAnt()`; the other sizes give whole-number margins. **Core simulation change - needs human review.**
 - Fix: role-split normalisation no longer runs on every input event, which corrupted preset values mid-update.
 - Renderer repaints after a resize, so a paused world no longer goes blank.
 
 ### Known issues
 - The FPS counter counts renders, which happen once per simulation tick (every 800 ms at 1x).
 - A legacy nest tile is still drawn at the map centre by world generation, separate from the real nests.
-- Three simulation tests fail (two always, others intermittently) because world generation uses unseeded `Math.random()`; unrelated to this release.
+- 3-4 tests in `multiple-nests.test.js` and `pheromone-communication.test.js` fail (two always, others intermittently). The same tests failed before this release; the likely cause is unseeded `Math.random()` in world generation.
 - The GameMaster session is not saved with the world and does not feed back into the live simulation; it resets on page reload.
 
 ## prototype-v0.6 - Configurable Worlds Edition (2025-09-12)
