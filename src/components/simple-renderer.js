@@ -184,6 +184,7 @@ export class SimpleRenderer {
       lastMouseY = e.clientY;
       
       this.needsFullRedraw = true;
+      this.requestRedraw();
     });
     
     // Mouse up - stop dragging
@@ -215,6 +216,7 @@ export class SimpleRenderer {
         
         this.scale = newScale;
         this.needsFullRedraw = true;
+        this.requestRedraw();
       }
     });
     
@@ -531,6 +533,19 @@ export class SimpleRenderer {
     if (options.showEnvironmentDetails !== undefined) this.showEnvironmentDetails = options.showEnvironmentDetails;
     if (options.showTerritory !== undefined) this.showTerritory = options.showTerritory;
     this.needsFullRedraw = true;
+  }
+
+  /**
+   * Redraw the last state on the next frame. Pan and zoom used to wait for
+   * the next simulation tick (up to 800 ms at 1x), so the map lagged the mouse.
+   */
+  requestRedraw() {
+    if (this.redrawPending || !this.lastState) return;
+    this.redrawPending = true;
+    requestAnimationFrame(() => {
+      this.redrawPending = false;
+      this.render(this.lastState);
+    });
   }
 
   /**

@@ -466,6 +466,9 @@ export class WebSimulation {
     // else the seed given to the constructor (tests), else a fresh one.
     this.seed = (config.seed ?? this.defaultSeed ?? randomSeed()) >>> 0;
     this.random = createRandom(this.seed);
+
+    // A new world starts its own clock (the HUD showed the previous world's time)
+    this.elapsedTime = 0;
     
     // Determine world dimensions
     const dimensions = this.getWorldDimensions(config);
